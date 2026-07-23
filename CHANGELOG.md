@@ -5,6 +5,14 @@ stanu aplikacji. Każdy wpis tutaj odpowiada jednemu commitowi w gita
 (`git log` pokaże dokładny diff; `git checkout <hash> -- .` albo
 `git revert <hash>` pozwala się cofnąć do/po danej zmianie).
 
+## 2026-07-24 — Podgląd tras na kafelku, mniej redundancji w tabeli
+
+- Kafelek sortującego (P1/P2/P3) pokazuje teraz listę obsługiwanych tras
+  pod numerem (mniejsza czcionka, kolor akcentu) — bez klikania.
+- Tabela przesyłek nie pokazuje kolumny Trasa, gdy jest już zawężona do
+  jednej trasy (P1/P3, poziom trasa) — redundantne, bo widać ją wyżej.
+  Dla P2/COY004 (kilka tras w jednej tabeli) kolumna zostaje.
+
 ## 2026-07-24 — Naprawa dopasowania nagłówków w parserze
 
 - "Weight / Dimension" zapisywało się jako puste — realny nagłówek Panoramy
