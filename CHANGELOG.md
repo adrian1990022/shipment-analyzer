@@ -5,6 +5,15 @@ stanu aplikacji. Każdy wpis tutaj odpowiada jednemu commitowi w gita
 (`git log` pokaże dokładny diff; `git checkout <hash> -- .` albo
 `git revert <hash>` pozwala się cofnąć do/po danej zmianie).
 
+## 2026-07-24 — Naprawa dopasowania nagłówków w parserze
+
+- "Weight / Dimension" zapisywało się jako puste — realny nagłówek Panoramy
+  ma spację przed "/" ("Weight (KG) /Dimension (CM)"), a parser wymagał
+  dokładnego dopasowania tekstu.
+- Dopasowanie nagłówków kolumn (Panorama i Sherloc) jest teraz odporne na
+  różnice w spacjach/wielkości liter (`parseWorkbook.normalizeHeader`) —
+  ta sama klasa błędu (jak wcześniej przy dacie) nie powinna już wracać.
+
 ## 2026-07-23 — Nawigacja wstecz, poziom Trasa, sortujący z bramy
 
 - Przyciski "wstecz" powiększone, wyglądają jak pełne buttony (nie link tekstowy).
