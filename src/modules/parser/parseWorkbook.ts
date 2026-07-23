@@ -3,6 +3,17 @@
 // To jedyne miejsce w aplikacji, ktore zna format pliku (SheetJS).
 // `xlsx` jest importowany dynamicznie -- jest uzywany tylko na ekranie
 // importu, wiec nie powinien obciazac glownego bundla (Dashboard/PWA start).
+
+// Realne eksporty Panorama/Sherloc potrafia miec niespojne spacje w
+// naglowkach (np. "Weight (KG) /Dimension (CM)" vs "Weight (KG)/Dimension
+// (CM)"). Klucze rowu normalizujemy (bez spacji, lowercase), zeby parser nie
+// wywalal sie / nie cichl na takich roznicach -- to jedyne miejsce, gdzie
+// trzeba to zrobic, bo wszystkie kolejne moduly czytaja juz znormalizowane
+// klucze.
+export function normalizeHeader(header: string): string {
+  return header.trim().toLowerCase().replace(/\s+/g, "");
+}
+
 export async function readWorkbookRows(file: File): Promise<Record<string, string>[]> {
   const XLSX = await import("xlsx");
   const buffer = await file.arrayBuffer();
@@ -19,7 +30,7 @@ export async function readWorkbookRows(file: File): Promise<Record<string, strin
   return rows.map((row) => {
     const normalized: Record<string, string> = {};
     for (const [key, value] of Object.entries(row)) {
-      normalized[key.trim()] = String(value ?? "").trim();
+      normalized[normalizeHeader(key)] = String(value ?? "").trim();
     }
     return normalized;
   });

@@ -1,11 +1,12 @@
 import type { SherlocRow } from "../../types/report";
+import { normalizeHeader } from "./parseWorkbook";
 
 const COLUMNS = {
-  hwbNo: "HWB No",
-  receiverName: "Receiver Name",
-  rcvrAddr1: "Rcvr Addr 1",
-  rcvrPostcode: "Rcvr Postcode",
-  rcvrCity: "Rcvr City",
+  hwbNo: normalizeHeader("HWB No"),
+  receiverName: normalizeHeader("Receiver Name"),
+  rcvrAddr1: normalizeHeader("Rcvr Addr 1"),
+  rcvrPostcode: normalizeHeader("Rcvr Postcode"),
+  rcvrCity: normalizeHeader("Rcvr City"),
 } as const;
 
 export function parseSherlocRows(rawRows: Record<string, string>[]): SherlocRow[] {

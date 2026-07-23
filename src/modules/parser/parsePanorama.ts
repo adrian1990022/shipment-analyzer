@@ -1,16 +1,19 @@
 import type { PanoramaRow } from "../../types/report";
+import { normalizeHeader } from "./parseWorkbook";
 
-// Kolejnosc / obecnosc kolumn wg specyfikacji raportu Panorama.
+// Kolejnosc / obecnosc kolumn wg specyfikacji raportu Panorama. Klucze sa
+// znormalizowane (patrz parseWorkbook.normalizeHeader), zeby drobne roznice
+// spacji w realnym eksporcie nie psuly dopasowania.
 const COLUMNS = {
-  shipmentId: "Shipment ID",
-  remarks: "Remarks",
-  hwx: "HWX?",
-  lastPhyCp: "Last Phy Cp",
-  lastPhyCpDt: "Last Phy Cp dt",
-  weightDimension: "Weight (KG)/Dimension (CM)",
-  shpCalcWgt: "Shp Calc Wgt (KG)",
-  consigneeName: "Consignee Name",
-  chuteId: "Chute ID",
+  shipmentId: normalizeHeader("Shipment ID"),
+  remarks: normalizeHeader("Remarks"),
+  hwx: normalizeHeader("HWX?"),
+  lastPhyCp: normalizeHeader("Last Phy Cp"),
+  lastPhyCpDt: normalizeHeader("Last Phy Cp dt"),
+  weightDimension: normalizeHeader("Weight (KG)/Dimension (CM)"),
+  shpCalcWgt: normalizeHeader("Shp Calc Wgt (KG)"),
+  consigneeName: normalizeHeader("Consignee Name"),
+  chuteId: normalizeHeader("Chute ID"),
 } as const;
 
 export function parsePanoramaRows(rawRows: Record<string, string>[]): PanoramaRow[] {

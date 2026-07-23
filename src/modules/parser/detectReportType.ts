@@ -1,13 +1,14 @@
 import type { DetectedReport, ReportKind } from "../../types/report";
+import { normalizeHeader } from "./parseWorkbook";
 
 // Kolumny, po ktorych rozpoznajemy typ raportu. Parser rozpoznaje TYLKO
 // ksztalt pliku (jakie ma kolumny) -- nie wie nic o trasach ani sortujacych.
-const PANORAMA_SIGNATURE = ["Shipment ID", "Chute ID"];
-const SHERLOC_SIGNATURE = ["HWB No", "Receiver Name"];
+const PANORAMA_SIGNATURE = ["Shipment ID", "Chute ID"].map(normalizeHeader);
+const SHERLOC_SIGNATURE = ["HWB No", "Receiver Name"].map(normalizeHeader);
 
 function hasAll(headers: string[], required: string[]): boolean {
-  const set = new Set(headers.map((h) => h.toLowerCase()));
-  return required.every((col) => set.has(col.toLowerCase()));
+  const set = new Set(headers);
+  return required.every((col) => set.has(col));
 }
 
 export function detectReportType(headers: string[]): DetectedReport | null {
