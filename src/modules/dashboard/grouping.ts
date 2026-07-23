@@ -23,6 +23,9 @@ export function shipmentsInGrupa(shipments: Shipment[], grupa: Grupa): Shipment[
 export interface SorterSummary {
   sortujacy: string;
   count: number;
+  // Lista tras obslugiwanych przez tego sortujacego -- pokazywana wprost
+  // na kafelku, zeby nie trzeba bylo w niego klikac, by je poznac.
+  trasy: string[];
 }
 
 // Sortujacy bywa liczba (P1/P3, np. "1".."17") albo litera (P2, fallback
@@ -36,12 +39,19 @@ function compareSortujacy(a: string, b: string): number {
 }
 
 export function sortersInGrupa(shipments: Shipment[]): SorterSummary[] {
-  const counts = new Map<string, number>();
+  const bucket = new Map<string, { count: number; trasy: Set<string> }>();
   for (const s of shipments) {
-    counts.set(s.sortujacy, (counts.get(s.sortujacy) ?? 0) + 1);
+    const entry = bucket.get(s.sortujacy) ?? { count: 0, trasy: new Set<string>() };
+    entry.count += 1;
+    entry.trasy.add(s.trasa);
+    bucket.set(s.sortujacy, entry);
   }
-  return Array.from(counts.entries())
-    .map(([sortujacy, count]) => ({ sortujacy, count }))
+  return Array.from(bucket.entries())
+    .map(([sortujacy, { count, trasy }]) => ({
+      sortujacy,
+      count,
+      trasy: Array.from(trasy).sort((a, b) => a.localeCompare(b)),
+    }))
     .sort((a, b) => compareSortujacy(a.sortujacy, b.sortujacy));
 }
 

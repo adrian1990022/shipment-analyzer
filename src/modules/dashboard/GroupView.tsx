@@ -23,9 +23,10 @@ export function GroupView({
       <h1>Grupa {grupa}</h1>
       {sorters.length === 0 && <p className="hint">Brak przesylek w tej grupie.</p>}
       <div className="tiles">
-        {sorters.map(({ sortujacy, count }) => (
+        {sorters.map(({ sortujacy, count, trasy }) => (
           <button key={sortujacy} className="tile" onClick={() => onSelectSortujacy(sortujacy)}>
             <span className="tile-title">{sortujacy}</span>
+            <span className="tile-trasy">{trasy.join(", ")}</span>
             <span className="tile-count">{count}</span>
           </button>
         ))}

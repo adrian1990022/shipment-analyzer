@@ -18,7 +18,10 @@ export function SorterTable({
   trasa?: string;
   onBack: () => void;
 }) {
-  const [sortKey, setSortKey] = useState<SortKey>("trasa");
+  // Gdy tabela jest juz zawezona do jednej trasy, kolumna Trasa jest
+  // redundantna -- widac ja na poprzednim kafelku (TrasaListView).
+  const showTrasaColumn = !trasa;
+  const [sortKey, setSortKey] = useState<SortKey>(showTrasaColumn ? "trasa" : "consigneeName");
   const [sortAsc, setSortAsc] = useState(true);
 
   const rows = useMemo(() => {
@@ -53,9 +56,11 @@ export function SorterTable({
       <table className="data-table">
         <thead>
           <tr>
-            <th className="sortable" onClick={() => toggleSort("trasa")}>
-              Trasa {sortKey === "trasa" && (sortAsc ? "↑" : "↓")}
-            </th>
+            {showTrasaColumn && (
+              <th className="sortable" onClick={() => toggleSort("trasa")}>
+                Trasa {sortKey === "trasa" && (sortAsc ? "↑" : "↓")}
+              </th>
+            )}
             <th>Shipment ID</th>
             <th>Last Phy Cp</th>
             <th className="sortable" onClick={() => toggleSort("consigneeName")}>
@@ -68,7 +73,7 @@ export function SorterTable({
         <tbody>
           {rows.map((s) => (
             <tr key={s.shipmentId}>
-              <td>{s.trasa}</td>
+              {showTrasaColumn && <td>{s.trasa}</td>}
               <td>{s.shipmentId}</td>
               <td>{s.lastPhyCp}</td>
               <td>{s.consigneeName}</td>
