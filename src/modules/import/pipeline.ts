@@ -4,6 +4,7 @@ import { parsePanoramaRows } from "../parser/parsePanorama";
 import { parseSherlocRows } from "../parser/parseSherloc";
 import { joinReports } from "../joiner/joinReports";
 import { filterToday } from "../dateFilter/filterToday";
+import { dedupeByShipmentId } from "../dedup/dedupeByShipmentId";
 import { mapRoutes } from "../mapper/mapRoutes";
 import { summarize } from "../analyzer/summarize";
 import { fetchRoutes } from "../repository/routesRepository";
@@ -55,9 +56,14 @@ export async function runImportPipeline(
 
   const { rows: joinedRows, matchedCount, unmatchedCount } = joinReports(panoramaRows, sherlocRows);
   const { todayRows } = filterToday(joinedRows);
+  const { rows: dedupedRows, occurrenceCounts } = dedupeByShipmentId(todayRows);
 
   const routes = await fetchRoutes();
-  const { shipments, unmappedChuteIds, unmappedRowCount } = mapRoutes(todayRows, routes);
+  const { shipments, unmappedChuteIds, unmappedRowCount } = mapRoutes(
+    dedupedRows,
+    routes,
+    occurrenceCounts
+  );
 
   const summary = summarize({
     totalRows: panoramaRows.length,

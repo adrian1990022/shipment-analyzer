@@ -12,6 +12,7 @@ const COLUMNS = {
   lastPhyCpDt: normalizeHeader("Last Phy Cp dt"),
   weightDimension: normalizeHeader("Weight (KG)/Dimension (CM)"),
   shpCalcWgt: normalizeHeader("Shp Calc Wgt (KG)"),
+  shpTotPcs: normalizeHeader("Shp Tot Pcs"),
   consigneeName: normalizeHeader("Consignee Name"),
   chuteId: normalizeHeader("Chute ID"),
 } as const;
@@ -26,6 +27,7 @@ export function parsePanoramaRows(rawRows: Record<string, string>[]): PanoramaRo
       lastPhyCpDt: raw[COLUMNS.lastPhyCpDt] ?? "",
       weightDimension: raw[COLUMNS.weightDimension] ?? "",
       shpCalcWgt: raw[COLUMNS.shpCalcWgt] ?? "",
+      shpTotPcs: raw[COLUMNS.shpTotPcs] ?? "",
       consigneeName: raw[COLUMNS.consigneeName] ?? "",
       chuteId: raw[COLUMNS.chuteId] ?? "",
     }))

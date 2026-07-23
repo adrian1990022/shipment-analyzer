@@ -68,6 +68,8 @@ export function SorterTable({
             </th>
             <th>Weight / Dimension</th>
             <th>Remarks</th>
+            <th>Shp Tot Pcs</th>
+            <th>Wystąpiło</th>
           </tr>
         </thead>
         <tbody>
@@ -79,6 +81,8 @@ export function SorterTable({
               <td>{s.consigneeName}</td>
               <td>{s.weightDimension}</td>
               <td>{s.remarks}</td>
+              <td>{s.shpTotPcs ?? ""}</td>
+              <td>{s.wystapilo}</td>
             </tr>
           ))}
         </tbody>

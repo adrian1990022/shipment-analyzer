@@ -20,7 +20,13 @@ function sorterFromTrasa(trasa: string): string {
 
 // Mapper jest jedynym modulem, ktory zna tabele routes. Parser i Joiner
 // dzialaja bez tej wiedzy (patrz komentarze w tych modulach).
-export function mapRoutes(rows: JoinedRow[], routes: RouteRef[]): MapResult {
+// occurrenceCounts pochodzi z kroku deduplikacji (dedupeByShipmentId) --
+// Mapper tylko przepisuje je do pola "wystapilo", nie liczy ich sam.
+export function mapRoutes(
+  rows: JoinedRow[],
+  routes: RouteRef[],
+  occurrenceCounts: Map<string, number>
+): MapResult {
   const routeByChuteId = new Map<string, RouteRef>();
   for (const route of routes) {
     routeByChuteId.set(normalizeJoinKey(route.chuteId), route);
@@ -61,6 +67,7 @@ export function mapRoutes(rows: JoinedRow[], routes: RouteRef[]): MapResult {
       lastPhyCpDt: parseFlexibleDate(panorama.lastPhyCpDt)?.toISOString() ?? null,
       weightDimension: panorama.weightDimension,
       shpCalcWgt: parseNumber(panorama.shpCalcWgt),
+      shpTotPcs: parseNumber(panorama.shpTotPcs),
       consigneeName: panorama.consigneeName,
       chuteId,
       receiverName: sherloc?.receiverName ?? "",
@@ -70,6 +77,7 @@ export function mapRoutes(rows: JoinedRow[], routes: RouteRef[]): MapResult {
       trasa,
       grupa,
       sortujacy: explicitSortujacy || sorterFromTrasa(trasa),
+      wystapilo: occurrenceCounts.get(panorama.shipmentId) ?? 1,
     });
   }
 

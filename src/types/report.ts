@@ -9,6 +9,7 @@ export interface PanoramaRow {
   lastPhyCpDt: string;
   weightDimension: string;
   shpCalcWgt: string;
+  shpTotPcs: string;
   consigneeName: string;
   chuteId: string;
 }

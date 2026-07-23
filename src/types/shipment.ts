@@ -10,6 +10,7 @@ export interface Shipment {
   lastPhyCpDt: string | null;
   weightDimension: string;
   shpCalcWgt: number | null;
+  shpTotPcs: number | null;
   consigneeName: string;
   chuteId: string;
   receiverName: string;
@@ -19,6 +20,9 @@ export interface Shipment {
   trasa: string;
   grupa: Grupa;
   sortujacy: string;
+  // Ile razy dany Shipment ID wystapil w dzisiejszych danych Panorama
+  // (przed deduplikacja) -- patrz modules/dedup/dedupeByShipmentId.ts.
+  wystapilo: number;
 }
 
 export interface RouteRef {

@@ -9,6 +9,7 @@ interface ShipmentRow {
   last_phy_cp_dt: string | null;
   weight_dimension: string | null;
   shp_calc_wgt: number | null;
+  shp_tot_pcs: number | null;
   consignee_name: string | null;
   chute_id: string | null;
   receiver_name: string | null;
@@ -18,6 +19,7 @@ interface ShipmentRow {
   trasa: string;
   grupa: Grupa;
   sortujacy: string;
+  wystapilo: number;
   import_id: number | null;
 }
 
@@ -30,6 +32,7 @@ function toRow(shipment: Shipment, importId: number | null): ShipmentRow {
     last_phy_cp_dt: shipment.lastPhyCpDt,
     weight_dimension: shipment.weightDimension || null,
     shp_calc_wgt: shipment.shpCalcWgt,
+    shp_tot_pcs: shipment.shpTotPcs,
     consignee_name: shipment.consigneeName || null,
     chute_id: shipment.chuteId || null,
     receiver_name: shipment.receiverName || null,
@@ -39,6 +42,7 @@ function toRow(shipment: Shipment, importId: number | null): ShipmentRow {
     trasa: shipment.trasa,
     grupa: shipment.grupa,
     sortujacy: shipment.sortujacy,
+    wystapilo: shipment.wystapilo,
     import_id: importId,
   };
 }
@@ -52,6 +56,7 @@ function fromRow(row: ShipmentRow & { id: number }): Shipment {
     lastPhyCpDt: row.last_phy_cp_dt,
     weightDimension: row.weight_dimension ?? "",
     shpCalcWgt: row.shp_calc_wgt,
+    shpTotPcs: row.shp_tot_pcs,
     consigneeName: row.consignee_name ?? "",
     chuteId: row.chute_id ?? "",
     receiverName: row.receiver_name ?? "",
@@ -61,6 +66,7 @@ function fromRow(row: ShipmentRow & { id: number }): Shipment {
     trasa: row.trasa,
     grupa: row.grupa,
     sortujacy: row.sortujacy,
+    wystapilo: row.wystapilo,
   };
 }
 
@@ -68,7 +74,7 @@ export async function fetchShipments(): Promise<Shipment[]> {
   const { data, error } = await supabase
     .from("shipments")
     .select(
-      "shipment_id, remarks, hwx, last_phy_cp, last_phy_cp_dt, weight_dimension, shp_calc_wgt, consignee_name, chute_id, receiver_name, rcvr_addr1, rcvr_postcode, rcvr_city, trasa, grupa, sortujacy, import_id, id"
+      "shipment_id, remarks, hwx, last_phy_cp, last_phy_cp_dt, weight_dimension, shp_calc_wgt, shp_tot_pcs, consignee_name, chute_id, receiver_name, rcvr_addr1, rcvr_postcode, rcvr_city, trasa, grupa, sortujacy, wystapilo, import_id, id"
     );
 
   if (error) throw error;
