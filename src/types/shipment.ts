@@ -26,6 +26,9 @@ export interface RouteRef {
   chuteId: string;
   trasa: string;
   grupa: "P1" | "P2" | "P3";
+  // Jawne przypisanie sortujacego do tej bramy. Puste = Mapper wylicza
+  // sortujacego regula MVP (3. litera trasy) -- patrz mapRoutes.ts.
+  sortujacy: string | null;
   createdAt: string;
   updatedAt: string;
 }

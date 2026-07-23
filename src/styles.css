@@ -1,13 +1,13 @@
 :root {
   color-scheme: light dark;
-  --bg: #0f172a;
-  --surface: #1e293b;
-  --border: #334155;
-  --text: #e2e8f0;
-  --muted: #94a3b8;
+  --bg: #1e293b;
+  --surface: #334155;
+  --border: #52697f;
+  --text: #f8fafc;
+  --muted: #cbd5e1;
   --accent: #38bdf8;
-  --danger: #f87171;
-  --warning-bg: #422006;
+  --danger: #fca5a5;
+  --warning-bg: #5a3213;
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
@@ -158,12 +158,18 @@ button.secondary {
 }
 
 .back {
-  background: transparent;
-  color: var(--accent);
-  border: none;
-  padding: 0;
-  margin-bottom: 12px;
-  font-size: 14px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 20px;
+  margin-bottom: 16px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.back:hover {
+  border-color: var(--accent);
 }
 
 table {

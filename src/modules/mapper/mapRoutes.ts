@@ -10,8 +10,9 @@ export interface MapResult {
   unmappedRowCount: number;
 }
 
-// Trasa -> sortujacy: MVP wylicza sortujacego z trzeciej litery trasy
-// (regula biznesowa wprost ze specyfikacji, nie do "wywnioskowania" inaczej).
+// Fallback, gdy brama nie ma jawnego przypisania sortujacego w routes:
+// MVP wylicza sortujacego z trzeciej litery trasy (regula biznesowa wprost
+// ze specyfikacji). Uzywana dzis dla calej grupy P2 i dla COY004.
 function sorterFromTrasa(trasa: string): string {
   const upper = trasa.trim().toUpperCase();
   return upper.charAt(2) || upper || "?";
@@ -35,6 +36,7 @@ export function mapRoutes(rows: JoinedRow[], routes: RouteRef[]): MapResult {
 
     let trasa: string;
     let grupa: Grupa;
+    let explicitSortujacy: string | null = null;
 
     if (chuteKey === COY004) {
       trasa = COY004;
@@ -48,6 +50,7 @@ export function mapRoutes(rows: JoinedRow[], routes: RouteRef[]): MapResult {
       }
       trasa = route.trasa;
       grupa = route.grupa;
+      explicitSortujacy = route.sortujacy;
     }
 
     shipments.push({
@@ -66,7 +69,7 @@ export function mapRoutes(rows: JoinedRow[], routes: RouteRef[]): MapResult {
       rcvrCity: sherloc?.rcvrCity ?? "",
       trasa,
       grupa,
-      sortujacy: sorterFromTrasa(trasa),
+      sortujacy: explicitSortujacy || sorterFromTrasa(trasa),
     });
   }
 

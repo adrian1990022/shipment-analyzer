@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import type { Grupa, Shipment } from "../../types/shipment";
-import { shipmentsForSorter, shipmentsInGrupa } from "./grouping";
+import { shipmentsForSorter, shipmentsForTrasa, shipmentsInGrupa } from "./grouping";
 
 type SortKey = "trasa" | "consigneeName";
 
@@ -8,11 +8,14 @@ export function SorterTable({
   shipments,
   grupa,
   sortujacy,
+  trasa,
   onBack,
 }: {
   shipments: Shipment[];
   grupa: Grupa;
   sortujacy: string;
+  // Podany tylko dla P1/P3 (poziom trasa) -- zawezanie do jednej trasy.
+  trasa?: string;
   onBack: () => void;
 }) {
   const [sortKey, setSortKey] = useState<SortKey>("trasa");
@@ -20,13 +23,14 @@ export function SorterTable({
 
   const rows = useMemo(() => {
     const inGroup = shipmentsInGrupa(shipments, grupa);
-    const forSorter = shipmentsForSorter(inGroup, sortujacy);
+    let forSorter = shipmentsForSorter(inGroup, sortujacy);
+    if (trasa) forSorter = shipmentsForTrasa(forSorter, trasa);
     const sorted = [...forSorter].sort((a, b) => {
       const cmp = a[sortKey].localeCompare(b[sortKey]);
       return sortAsc ? cmp : -cmp;
     });
     return sorted;
-  }, [shipments, grupa, sortujacy, sortKey, sortAsc]);
+  }, [shipments, grupa, sortujacy, trasa, sortKey, sortAsc]);
 
   function toggleSort(key: SortKey) {
     if (key === sortKey) {
@@ -40,10 +44,11 @@ export function SorterTable({
   return (
     <div className="screen">
       <button className="back" onClick={onBack}>
-        ← Grupa {grupa}
+        ← {trasa ? `sortujący ${sortujacy}` : `Grupa ${grupa}`}
       </button>
       <h1>
         {grupa} / {sortujacy}
+        {trasa ? ` / ${trasa}` : ""}
       </h1>
       <table className="data-table">
         <thead>
