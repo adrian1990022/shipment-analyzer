@@ -5,6 +5,17 @@ stanu aplikacji. Każdy wpis tutaj odpowiada jednemu commitowi w gita
 (`git log` pokaże dokładny diff; `git checkout <hash> -- .` albo
 `git revert <hash>` pozwala się cofnąć do/po danej zmianie).
 
+## 2026-07-24 — Shp Tot Pcs, deduplikacja Shipment ID
+
+- Parser Panorama wczytuje dodatkowo kolumnę **"Shp Tot Pcs"**.
+- Nowy krok pipeline'u: deduplikacja po Shipment ID (między filtrem dat
+  a mapowaniem tras) — jeśli ten sam Shipment ID wystąpił w dzisiejszych
+  danych kilka razy, zostaje jeden wiersz, a liczba wystąpień trafia do
+  nowego pola `wystapilo`.
+- Tabela z błędami ma dwie nowe kolumny: **Shp Tot Pcs** i **Wystąpiło**.
+- Wymaga migracji `0003_shp_tot_pcs_wystapilo.sql` (nowe kolumny w
+  `shipments`).
+
 ## 2026-07-24 — Podgląd tras na kafelku, mniej redundancji w tabeli
 
 - Kafelek sortującego (P1/P2/P3) pokazuje teraz listę obsługiwanych tras
