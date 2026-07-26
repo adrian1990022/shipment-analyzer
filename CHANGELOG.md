@@ -15,11 +15,13 @@ stanu aplikacji. Każdy wpis tutaj odpowiada jednemu commitowi w gita
   X-Frame-Options, Referrer-Policy, Permissions-Policy) — wcześniej ich
   brakowało.
 - Drobna łatka `brace-expansion` (dev-dependency, tylko etap builda).
-- **Nie naprawione w tym kroku (wymaga decyzji):** tabele Supabase mają
-  RLS otwarte dla każdego z kluczem anon (`using (true)`) i aplikacja nie
-  ma logowania — każdy ze znajomym adresem/kluczem może odczytać i
-  skasować dane, w tym PII odbiorców z Sherloc. Patrz rozmowa z 2026-07-26
-  — do wdrożenia: Supabase Auth + RLS oparte o `auth.uid()`.
+- **Świadomie odłożone (decyzja Adriana, 2026-07-26):** tabele Supabase
+  mają RLS otwarte dla każdego z kluczem anon (`using (true)`) i aplikacja
+  nie ma logowania — każdy ze znajomym adresem/kluczem może odczytać i
+  skasować dane, w tym PII odbiorców z Sherloc. Zapytany, czy wdrożyć
+  Supabase Auth + RLS oparte o `auth.uid()`, Adrian wybrał zostawienie tego
+  otwartego na razie. Do podjęcia w przyszłości — plan jest gotowy
+  (patrz `supabase/migrations/0001_init.sql`, sekcja RLS).
 
 ## 2026-07-26 — Czytelny Weight / Dimension
 
