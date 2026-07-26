@@ -68,7 +68,7 @@ export function SorterTable({
             </th>
             <th>Weight / Dimension</th>
             <th>Remarks</th>
-            <th>Shp Tot Pcs</th>
+            <th>Total Pcs</th>
             <th>Wystąpiło</th>
           </tr>
         </thead>

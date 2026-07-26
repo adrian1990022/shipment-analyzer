@@ -5,6 +5,11 @@ stanu aplikacji. Każdy wpis tutaj odpowiada jednemu commitowi w gita
 (`git log` pokaże dokładny diff; `git checkout <hash> -- .` albo
 `git revert <hash>` pozwala się cofnąć do/po danej zmianie).
 
+## 2026-07-26 — Zmiana etykiety kolumny
+
+- Nagłówek kolumny w tabeli zmieniony z "Shp Tot Pcs" na "Total Pcs"
+  (tylko etykieta — dane i nazwa pola bez zmian).
+
 ## 2026-07-24 — Shp Tot Pcs, deduplikacja Shipment ID
 
 - Parser Panorama wczytuje dodatkowo kolumnę **"Shp Tot Pcs"**.
