@@ -5,6 +5,22 @@ stanu aplikacji. Każdy wpis tutaj odpowiada jednemu commitowi w gita
 (`git log` pokaże dokładny diff; `git checkout <hash> -- .` albo
 `git revert <hash>` pozwala się cofnąć do/po danej zmianie).
 
+## 2026-07-26 — Audyt bezpieczeństwa: łatane zależności i nagłówki
+
+- `xlsx` (SheetJS) miał 2 niezałatane luki wysokiego ryzyka w wersji z npm
+  (prototype pollution, ReDoS) — przełączone na oficjalnie załataną wersję
+  0.20.3 z CDN SheetJS (npm nie publikuje już poprawek do tej paczki).
+  Wersja przypięta na sztywno (nie "latest"), żeby build był powtarzalny.
+- Dodany `vercel.json` z nagłówkami bezpieczeństwa (X-Content-Type-Options,
+  X-Frame-Options, Referrer-Policy, Permissions-Policy) — wcześniej ich
+  brakowało.
+- Drobna łatka `brace-expansion` (dev-dependency, tylko etap builda).
+- **Nie naprawione w tym kroku (wymaga decyzji):** tabele Supabase mają
+  RLS otwarte dla każdego z kluczem anon (`using (true)`) i aplikacja nie
+  ma logowania — każdy ze znajomym adresem/kluczem może odczytać i
+  skasować dane, w tym PII odbiorców z Sherloc. Patrz rozmowa z 2026-07-26
+  — do wdrożenia: Supabase Auth + RLS oparte o `auth.uid()`.
+
 ## 2026-07-26 — Czytelny Weight / Dimension
 
 - Kolumna Weight/Dimension pokazuje teraz rozbite dane zamiast surowego
