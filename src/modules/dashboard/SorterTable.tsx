@@ -1,8 +1,22 @@
 import { useMemo, useState } from "react";
 import type { Grupa, Shipment } from "../../types/shipment";
 import { shipmentsForSorter, shipmentsForTrasa, shipmentsInGrupa } from "./grouping";
+import { parseWeightDimension } from "./parseWeightDimension";
 
 type SortKey = "trasa" | "consigneeName";
+
+function WeightDimensionCell({ value }: { value: string }) {
+  const parsed = parseWeightDimension(value);
+  if (!parsed) return <>{value}</>;
+  return (
+    <div className="weight-dimension">
+      <div>waga: {parsed.weightKg} kg</div>
+      <div>długość: {parsed.lengthCm} cm</div>
+      <div>wysokość: {parsed.heightCm} cm</div>
+      <div>szerokość: {parsed.widthCm} cm</div>
+    </div>
+  );
+}
 
 export function SorterTable({
   shipments,
@@ -79,7 +93,9 @@ export function SorterTable({
               <td>{s.shipmentId}</td>
               <td>{s.lastPhyCp}</td>
               <td>{s.consigneeName}</td>
-              <td>{s.weightDimension}</td>
+              <td>
+                <WeightDimensionCell value={s.weightDimension} />
+              </td>
               <td>{s.remarks}</td>
               <td>{s.shpTotPcs ?? ""}</td>
               <td>{s.wystapilo}</td>

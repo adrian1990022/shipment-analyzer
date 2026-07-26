@@ -5,6 +5,14 @@ stanu aplikacji. Każdy wpis tutaj odpowiada jednemu commitowi w gita
 (`git log` pokaże dokładny diff; `git checkout <hash> -- .` albo
 `git revert <hash>` pozwala się cofnąć do/po danej zmianie).
 
+## 2026-07-26 — Czytelny Weight / Dimension
+
+- Kolumna Weight/Dimension pokazuje teraz rozbite dane zamiast surowego
+  tekstu `< R > < 3.05 > < 32 X 10 X 32.5 >`:
+  waga / długość / wysokość / szerokość, każde w osobnej linii
+  (`parseWeightDimension.ts`). Gdy format się nie zgadza, wraca do
+  pokazania surowej wartości zamiast zgadywać.
+
 ## 2026-07-26 — Zmiana etykiety kolumny
 
 - Nagłówek kolumny w tabeli zmieniony z "Shp Tot Pcs" na "Total Pcs"

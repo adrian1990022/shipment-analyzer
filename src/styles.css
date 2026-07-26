@@ -205,6 +205,12 @@ th.sortable {
   user-select: none;
 }
 
+.weight-dimension {
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
 .summary-list {
   margin: 0 0 12px;
   padding-left: 18px;
