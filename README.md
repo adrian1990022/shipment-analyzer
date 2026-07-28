@@ -42,10 +42,12 @@ npm run dev
 - **Chute ID = `COY004` nie korzysta z tabeli `routes`** — trafia od
   razu do osobnego kafelka `COY004` (`trasa = "COY004"`), zgodnie ze
   specyfikacją.
-- **Sortujący = trzecia litera trasy** — to literalna reguła MVP ze
-  specyfikacji, celowo prosta i tymczasowa (patrz `mapRoutes.ts`,
-  `sorterFromTrasa`). Do zamiany, gdy pojawi się właściwe źródło danych
-  o przypisaniu sortujących.
+- **Sortujący przypisywany relacyjnie** — tabele `sorters` +
+  `sorter_routes` (zakładka "Sortujący", `SorterRepository`) są głównym
+  źródłem: jedna trasa → jeden sortujący (`sorter_routes.route unique`).
+  Gdy trasa nie ma przypisania, obowiązuje stary fallback MVP — trzecia
+  litera trasy (`mapRoutes.ts`, `sorterFromTrasa`) — celowo prosty,
+  zachowuje zgodność z danymi sprzed wprowadzenia relacji.
 - **Nie zapisujemy oryginalnych raportów** — cały pipeline (parsowanie,
   join, filtr daty, mapowanie) działa w pamięci przeglądarki; do
   Supabase trafia wyłącznie wynik końcowy, po akceptacji użytkownika.
@@ -100,6 +102,7 @@ src/
     analyzer/                  liczenie podsumowania importu
     repository/                JEDYNE moduly importujace supabaseClient
     referenceData/             UI administracji tabela routes
+    sorters/                   UI zarzadzania sortujacymi (sorters + sorter_routes)
     import/                    orkiestracja pipeline'u + ekran importu
     dashboard/                 kafelki grup -> sortujacy -> tabela
   types/                       modele danych (Report, Shipment)

@@ -8,6 +8,7 @@ import { dedupeByShipmentId } from "../dedup/dedupeByShipmentId";
 import { mapRoutes } from "../mapper/mapRoutes";
 import { summarize } from "../analyzer/summarize";
 import { fetchRoutes } from "../repository/routesRepository";
+import { fetchSorterNameByTrasa } from "../repository/sorterRepository";
 import type { ImportResult } from "../../types/shipment";
 
 export class PipelineError extends Error {}
@@ -58,11 +59,12 @@ export async function runImportPipeline(
   const { todayRows } = filterToday(joinedRows);
   const { rows: dedupedRows, occurrenceCounts } = dedupeByShipmentId(todayRows);
 
-  const routes = await fetchRoutes();
+  const [routes, sorterNameByTrasa] = await Promise.all([fetchRoutes(), fetchSorterNameByTrasa()]);
   const { shipments, unmappedChuteIds, unmappedRowCount } = mapRoutes(
     dedupedRows,
     routes,
-    occurrenceCounts
+    occurrenceCounts,
+    sorterNameByTrasa
   );
 
   const summary = summarize({

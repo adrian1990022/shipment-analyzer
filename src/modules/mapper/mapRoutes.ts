@@ -10,9 +10,9 @@ export interface MapResult {
   unmappedRowCount: number;
 }
 
-// Fallback, gdy brama nie ma jawnego przypisania sortujacego w routes:
+// Fallback, gdy trasa nie ma jawnego przypisania w sorter_routes:
 // MVP wylicza sortujacego z trzeciej litery trasy (regula biznesowa wprost
-// ze specyfikacji). Uzywana dzis dla calej grupy P2 i dla COY004.
+// ze specyfikacji). Uzywana dla P2, COY004 i kazdej trasy bez przypisania.
 function sorterFromTrasa(trasa: string): string {
   const upper = trasa.trim().toUpperCase();
   return upper.charAt(2) || upper || "?";
@@ -22,10 +22,14 @@ function sorterFromTrasa(trasa: string): string {
 // dzialaja bez tej wiedzy (patrz komentarze w tych modulach).
 // occurrenceCounts pochodzi z kroku deduplikacji (dedupeByShipmentId) --
 // Mapper tylko przepisuje je do pola "wystapilo", nie liczy ich sam.
+// sorterNameByTrasa (trasa -> nazwa sortujacego) pochodzi z SorterRepository
+// -- to jest jedyne zrodlo jawnego przypisania sortujacego, routes juz go
+// nie zna.
 export function mapRoutes(
   rows: JoinedRow[],
   routes: RouteRef[],
-  occurrenceCounts: Map<string, number>
+  occurrenceCounts: Map<string, number>,
+  sorterNameByTrasa: Map<string, string>
 ): MapResult {
   const routeByChuteId = new Map<string, RouteRef>();
   for (const route of routes) {
@@ -42,7 +46,6 @@ export function mapRoutes(
 
     let trasa: string;
     let grupa: Grupa;
-    let explicitSortujacy: string | null = null;
 
     if (chuteKey === COY004) {
       trasa = COY004;
@@ -56,7 +59,6 @@ export function mapRoutes(
       }
       trasa = route.trasa;
       grupa = route.grupa;
-      explicitSortujacy = route.sortujacy;
     }
 
     shipments.push({
@@ -76,7 +78,7 @@ export function mapRoutes(
       rcvrCity: sherloc?.rcvrCity ?? "",
       trasa,
       grupa,
-      sortujacy: explicitSortujacy || sorterFromTrasa(trasa),
+      sortujacy: sorterNameByTrasa.get(trasa) || sorterFromTrasa(trasa),
       wystapilo: occurrenceCounts.get(panorama.shipmentId) ?? 1,
     });
   }

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { deleteRoute, fetchRoutes, upsertRoute } from "../repository/routesRepository";
 import type { RouteRef } from "../../types/shipment";
 
-const EMPTY_FORM = { chuteId: "", trasa: "", grupa: "P1" as "P1" | "P2" | "P3", sortujacy: "" };
+const EMPTY_FORM = { chuteId: "", trasa: "", grupa: "P1" as "P1" | "P2" | "P3" };
 
 export function RoutesAdmin() {
   const [routes, setRoutes] = useState<RouteRef[]>([]);
@@ -53,7 +53,6 @@ export function RoutesAdmin() {
         chuteId: form.chuteId.trim(),
         trasa: form.trasa.trim(),
         grupa: form.grupa,
-        sortujacy: form.sortujacy,
       });
       setForm(EMPTY_FORM);
       await reload();
@@ -74,8 +73,7 @@ export function RoutesAdmin() {
       <h1>Dane referencyjne (trasy)</h1>
       <p className="hint">
         Mapowanie Chute ID → Trasa → Grupa kafelka. Chute ID = COY004 jest obslugiwane osobno i nie
-        wymaga wpisu tutaj. Sortujący jest opcjonalny — jeśli pusty, wyliczany jest automatycznie
-        z 3. litery trasy.
+        wymaga wpisu tutaj. Przypisanie sortującego do trasy zarządzasz w zakładce "Sortujący".
       </p>
 
       <form className="card" onSubmit={handleSubmit}>
@@ -98,11 +96,6 @@ export function RoutesAdmin() {
             <option value="P2">P2</option>
             <option value="P3">P3</option>
           </select>
-          <input
-            placeholder="Sortujący (opcjonalnie)"
-            value={form.sortujacy}
-            onChange={(e) => setForm((f) => ({ ...f, sortujacy: e.target.value }))}
-          />
           <button type="submit" disabled={saving}>
             {saving ? "Zapisuję..." : "Zapisz"}
           </button>
@@ -121,7 +114,6 @@ export function RoutesAdmin() {
                 Trasa {sortByTrasa && (sortAsc ? "↑" : "↓")}
               </th>
               <th>Grupa</th>
-              <th>Sortujący</th>
               <th></th>
             </tr>
           </thead>
@@ -131,7 +123,6 @@ export function RoutesAdmin() {
                 <td>{r.chuteId}</td>
                 <td>{r.trasa}</td>
                 <td>{r.grupa}</td>
-                <td>{r.sortujacy ?? "—"}</td>
                 <td>
                   <button className="secondary" onClick={() => handleDelete(r.id)}>
                     Usuń

@@ -8,6 +8,7 @@ import { SorterTable } from "./modules/dashboard/SorterTable";
 import { hasTrasaLevel } from "./modules/dashboard/grouping";
 import { ImportScreen } from "./modules/import/ImportScreen";
 import { RoutesAdmin } from "./modules/referenceData/RoutesAdmin";
+import { SortersAdmin } from "./modules/sorters/SortersAdmin";
 import { useNavigation } from "./navigation/useNavigation";
 
 type View =
@@ -16,7 +17,8 @@ type View =
   | { screen: "sorter"; grupa: Grupa; sortujacy: string }
   | { screen: "trasa"; grupa: Grupa; sortujacy: string; trasa: string }
   | { screen: "import" }
-  | { screen: "reference-data" };
+  | { screen: "reference-data" }
+  | { screen: "sorters" };
 
 const HOME: View = { screen: "dashboard" };
 
@@ -50,6 +52,9 @@ export default function App() {
         </button>
         <button className="nav-link" onClick={() => nav.navigate({ screen: "reference-data" })}>
           Dane referencyjne
+        </button>
+        <button className="nav-link" onClick={() => nav.navigate({ screen: "sorters" })}>
+          Sortujący
         </button>
       </nav>
 
@@ -116,6 +121,8 @@ export default function App() {
       )}
 
       {view.screen === "reference-data" && <RoutesAdmin />}
+
+      {view.screen === "sorters" && <SortersAdmin />}
     </div>
   );
 }

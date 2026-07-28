@@ -5,6 +5,37 @@ stanu aplikacji. Każdy wpis tutaj odpowiada jednemu commitowi w gita
 (`git log` pokaże dokładny diff; `git checkout <hash> -- .` albo
 `git revert <hash>` pozwala się cofnąć do/po danej zmianie).
 
+## 2026-07-28 — Zarządzanie sortującymi (nowa zakładka, relacja zamiast kolumny)
+
+- Nowa zakładka **Sortujący**: lista (nazwa / liczba tras / status
+  aktywny-nieaktywny / edytuj-usuń), formularz dodawania z multi-select
+  tras (tylko wolne trasy z `routes`, bez ręcznego wpisywania), edycja
+  (zmiana nazwy, dodawanie/usuwanie tras, dezaktywacja).
+- Nowe tabele Supabase: `sorters` (osoba) i `sorter_routes` (trasa →
+  sortujący, `route unique` wymusza "jedna trasa = jeden sortujący").
+  Brak twardego FK do `routes.trasa`, bo ta kolumna nie jest unikalna w
+  `routes` (kilka bram może mieć tę samą trasę) — spójność pilnowana w
+  UI (dropdown tylko z realnych wartości `routes.trasa`).
+- Nowy moduł `SorterRepository` — jedyne miejsce, które zna te dwie
+  tabele; logika przypisania nie siedzi w komponentach.
+- Mapper: przypisanie sortującego czyta teraz `sorters`/`sorter_routes`
+  zamiast `routes.sortujacy`. Brak przypisania dla trasy → stary
+  fallback (3. litera trasy) — bez zmian, zachowuje zgodność z P2 i
+  dowolną trasą jeszcze nieprzypisaną.
+- Dashboard pokazuje nazwę sortującego (np. "Sortujący 5") zamiast
+  surowego numeru z `routes.sortujacy` — źródło to wyłącznie nowa relacja.
+- **Migracja danych**: 45 starych przypisań `routes.sortujacy`
+  (P1: 1–10, P3: 11–17) przeniesione do 17 nowych rekordów `sorters`
+  (tymczasowe nazwy "Sortujący 1".."17" — do zmiany na prawdziwe imiona
+  w nowej zakładce) i 31 przypisań tras. **7 tras pominiętych** — miały
+  sprzeczne dane w starym systemie (ta sama trasa przypisana do dwóch
+  różnych sortujących pod różnymi bramami): WAFA, WAFB, WAFD, WAFE,
+  WAFF, WAFX, WALB. Wracają na fallback (3. litera trasy), dopóki ktoś
+  ręcznie nie przypisze ich w zakładce Sortujący.
+- `routes.sortujacy` usunięte z kodu aplikacji. Migracja `0005` (drop
+  kolumny w bazie) czeka na uruchomienie po weryfikacji, że wszystko
+  działa na produkcji — jedno źródło prawdy zamiast dwóch, docelowo.
+
 ## 2026-07-26 — Audyt bezpieczeństwa: łatane zależności i nagłówki
 
 - `xlsx` (SheetJS) miał 2 niezałatane luki wysokiego ryzyka w wersji z npm

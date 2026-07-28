@@ -19,6 +19,8 @@ export interface Shipment {
   rcvrCity: string;
   trasa: string;
   grupa: Grupa;
+  // Nazwa sortujacego (z sorters/sorter_routes -- patrz SorterRepository),
+  // albo -- gdy trasa nie ma przypisania -- fallback MVP (3. litera trasy).
   sortujacy: string;
   // Ile razy dany Shipment ID wystapil w dzisiejszych danych Panorama
   // (przed deduplikacja) -- patrz modules/dedup/dedupeByShipmentId.ts.
@@ -30,9 +32,6 @@ export interface RouteRef {
   chuteId: string;
   trasa: string;
   grupa: "P1" | "P2" | "P3";
-  // Jawne przypisanie sortujacego do tej bramy. Puste = Mapper wylicza
-  // sortujacego regula MVP (3. litera trasy) -- patrz mapRoutes.ts.
-  sortujacy: string | null;
   createdAt: string;
   updatedAt: string;
 }
