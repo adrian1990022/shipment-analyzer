@@ -5,6 +5,13 @@ stanu aplikacji. Każdy wpis tutaj odpowiada jednemu commitowi w gita
 (`git log` pokaże dokładny diff; `git checkout <hash> -- .` albo
 `git revert <hash>` pozwala się cofnąć do/po danej zmianie).
 
+## 2026-07-29 — Sortowanie po każdej kolumnie (Dane referencyjne, Sortujący)
+
+- "Dane referencyjne": każda kolumna (Chute ID, Trasa, Grupa) ma teraz
+  klikalny nagłówek — sortowanie pojedynczo po jednej na raz.
+- "Sortujący": doszło sortowanie po kolumnie "Trasy" — po pierwszej
+  (alfabetycznie) trasie danego sortującego. Obok, jak dotąd, po nazwie.
+
 ## 2026-07-29 — Sortujący: lista tras w tabeli, poprawka nawigacji, kolory w selektorze
 
 - Lista sortujących: kolumna "Liczba przypisanych tras" zastąpiona

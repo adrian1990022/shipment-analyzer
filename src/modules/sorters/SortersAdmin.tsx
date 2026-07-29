@@ -3,6 +3,14 @@ import { deleteSorter, fetchSorters } from "../repository/sorterRepository";
 import { naturalCompare } from "../normalizer/normalize";
 import type { SorterWithRoutes } from "../../types/sorter";
 
+type SortKey = "name" | "firstRoute";
+
+// Trasy sa juz posortowane alfabetycznie per sortujacy (patrz fetchSorters),
+// wiec pierwszy element to najwczesniejsza alfabetycznie trasa.
+function firstRoute(s: SorterWithRoutes): string {
+  return s.routes[0] ?? "";
+}
+
 export function SortersAdmin({
   onAdd,
   onEdit,
@@ -13,12 +21,26 @@ export function SortersAdmin({
   const [sorters, setSorters] = useState<SorterWithRoutes[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortAsc, setSortAsc] = useState(true);
 
   const visibleSorters = useMemo(() => {
-    const sorted = [...sorters].sort((a, b) => naturalCompare(a.name, b.name));
-    return sortAsc ? sorted : sorted.reverse();
-  }, [sorters, sortAsc]);
+    const sorted = [...sorters].sort((a, b) => {
+      const cmp =
+        sortKey === "name" ? naturalCompare(a.name, b.name) : naturalCompare(firstRoute(a), firstRoute(b));
+      return sortAsc ? cmp : -cmp;
+    });
+    return sorted;
+  }, [sorters, sortKey, sortAsc]);
+
+  function toggleSort(key: SortKey) {
+    if (key === sortKey) {
+      setSortAsc((v) => !v);
+    } else {
+      setSortKey(key);
+      setSortAsc(true);
+    }
+  }
 
   async function reload() {
     setLoading(true);
@@ -58,10 +80,12 @@ export function SortersAdmin({
         <table className="data-table" style={{ marginTop: 16 }}>
           <thead>
             <tr>
-              <th className="sortable" onClick={() => setSortAsc((v) => !v)}>
-                Nazwa sortującego {sortAsc ? "↑" : "↓"}
+              <th className="sortable" onClick={() => toggleSort("name")}>
+                Nazwa sortującego {sortKey === "name" && (sortAsc ? "↑" : "↓")}
               </th>
-              <th>Trasy</th>
+              <th className="sortable" onClick={() => toggleSort("firstRoute")}>
+                Trasy {sortKey === "firstRoute" && (sortAsc ? "↑" : "↓")}
+              </th>
               <th>Status</th>
               <th></th>
             </tr>

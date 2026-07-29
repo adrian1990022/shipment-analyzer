@@ -4,26 +4,30 @@ import type { RouteRef } from "../../types/shipment";
 
 const EMPTY_FORM = { chuteId: "", trasa: "", grupa: "P1" as "P1" | "P2" | "P3" };
 
+type SortKey = "chuteId" | "trasa" | "grupa";
+
 export function RoutesAdmin() {
   const [routes, setRoutes] = useState<RouteRef[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
-  const [sortByTrasa, setSortByTrasa] = useState(false);
+  const [sortKey, setSortKey] = useState<SortKey>("chuteId");
   const [sortAsc, setSortAsc] = useState(true);
 
   const visibleRoutes = useMemo(() => {
-    if (!sortByTrasa) return routes;
-    const sorted = [...routes].sort((a, b) => a.trasa.localeCompare(b.trasa));
-    return sortAsc ? sorted : sorted.reverse();
-  }, [routes, sortByTrasa, sortAsc]);
+    const sorted = [...routes].sort((a, b) => {
+      const cmp = a[sortKey].localeCompare(b[sortKey]);
+      return sortAsc ? cmp : -cmp;
+    });
+    return sorted;
+  }, [routes, sortKey, sortAsc]);
 
-  function toggleTrasaSort() {
-    if (sortByTrasa) {
+  function toggleSort(key: SortKey) {
+    if (key === sortKey) {
       setSortAsc((v) => !v);
     } else {
-      setSortByTrasa(true);
+      setSortKey(key);
       setSortAsc(true);
     }
   }
@@ -109,11 +113,15 @@ export function RoutesAdmin() {
         <table className="data-table">
           <thead>
             <tr>
-              <th>Chute ID</th>
-              <th className="sortable" onClick={toggleTrasaSort}>
-                Trasa {sortByTrasa && (sortAsc ? "↑" : "↓")}
+              <th className="sortable" onClick={() => toggleSort("chuteId")}>
+                Chute ID {sortKey === "chuteId" && (sortAsc ? "↑" : "↓")}
               </th>
-              <th>Grupa</th>
+              <th className="sortable" onClick={() => toggleSort("trasa")}>
+                Trasa {sortKey === "trasa" && (sortAsc ? "↑" : "↓")}
+              </th>
+              <th className="sortable" onClick={() => toggleSort("grupa")}>
+                Grupa {sortKey === "grupa" && (sortAsc ? "↑" : "↓")}
+              </th>
               <th></th>
             </tr>
           </thead>
