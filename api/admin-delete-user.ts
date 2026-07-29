@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { AdminAuthError, requireAdmin } from "../api-lib/adminAuth";
+import { AdminAuthError, requireAdmin } from "../api-lib/adminAuth.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
