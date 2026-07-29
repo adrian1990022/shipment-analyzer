@@ -74,6 +74,54 @@ h2 {
   font-size: 14px;
 }
 
+.file-field select {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 4px;
+  font-size: 14px;
+}
+
+.file-field select option {
+  padding: 4px 8px;
+}
+
+.file-field > button {
+  align-self: flex-start;
+  margin-top: 4px;
+}
+
+.assigned-routes-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+}
+
+.assigned-routes-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.assigned-routes-list li:last-child {
+  border-bottom: none;
+}
+
+.assigned-routes-list button {
+  padding: 2px 8px;
+  font-size: 12px;
+}
+
 .hint {
   color: var(--muted);
   font-size: 13px;

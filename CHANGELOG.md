@@ -5,6 +5,16 @@ stanu aplikacji. Każdy wpis tutaj odpowiada jednemu commitowi w gita
 (`git log` pokaże dokładny diff; `git checkout <hash> -- .` albo
 `git revert <hash>` pozwala się cofnąć do/po danej zmianie).
 
+## 2026-07-29 — Czytelniejsza edycja sortującego, sortowanie listy
+
+- Lista w zakładce Sortujący: kliknięcie nagłówka "Nazwa sortującego"
+  sortuje alfabetycznie (drugie kliknięcie odwraca).
+- Ekran edycji: między nazwą a selektorem tras pojawia się osobne okienko
+  "Przypisane trasy" — pokazuje wyłącznie trasy już przypisane do tego
+  sortującego, każda z przyciskiem usunięcia. Selektor niżej służy już
+  tylko do dokładania nowych (nie miesza się z długą listą istniejących).
+  Rozwiązuje nieczytelność przy dużej liczbie tras.
+
 ## 2026-07-28 — Zarządzanie sortującymi (nowa zakładka, relacja zamiast kolumny)
 
 - Nowa zakładka **Sortujący**: lista (nazwa / liczba tras / status

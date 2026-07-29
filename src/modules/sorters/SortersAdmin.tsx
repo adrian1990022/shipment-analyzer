@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { deleteSorter, fetchSorters } from "../repository/sorterRepository";
 import type { SorterWithRoutes } from "../../types/sorter";
 import { SorterForm } from "./SorterForm";
@@ -10,6 +10,12 @@ export function SortersAdmin() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<Mode>({ kind: "list" });
+  const [sortAsc, setSortAsc] = useState(true);
+
+  const visibleSorters = useMemo(() => {
+    const sorted = [...sorters].sort((a, b) => a.name.localeCompare(b.name));
+    return sortAsc ? sorted : sorted.reverse();
+  }, [sorters, sortAsc]);
 
   async function reload() {
     setLoading(true);
@@ -80,14 +86,16 @@ export function SortersAdmin() {
         <table className="data-table" style={{ marginTop: 16 }}>
           <thead>
             <tr>
-              <th>Nazwa sortującego</th>
+              <th className="sortable" onClick={() => setSortAsc((v) => !v)}>
+                Nazwa sortującego {sortAsc ? "↑" : "↓"}
+              </th>
               <th>Liczba przypisanych tras</th>
               <th>Status</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
-            {sorters.map((s) => (
+            {visibleSorters.map((s) => (
               <tr key={s.id}>
                 <td>{s.name}</td>
                 <td>{s.routes.length}</td>

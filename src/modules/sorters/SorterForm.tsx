@@ -18,9 +18,11 @@ export function SorterForm({
   onDone: () => void;
   onCancel: () => void;
 }) {
+  const isEdit = Boolean(sorter);
   const [name, setName] = useState(sorter?.name ?? "");
   const [active, setActive] = useState(sorter?.active ?? true);
-  const [selectedRoutes, setSelectedRoutes] = useState<string[]>(sorter?.routes ?? []);
+  const [assignedRoutes, setAssignedRoutes] = useState<string[]>(sorter?.routes ?? []);
+  const [pickedToAdd, setPickedToAdd] = useState<string[]>([]);
   const [availableRoutes, setAvailableRoutes] = useState<string[]>([]);
   const [loadingRoutes, setLoadingRoutes] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -34,9 +36,25 @@ export function SorterForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function handleRoutesChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    const values = Array.from(e.target.selectedOptions).map((o) => o.value);
-    setSelectedRoutes(values);
+  // W trybie edycji przypisane trasy maja wlasne okienko (nizej) --
+  // selektor sluzy juz tylko do dokladania nowych, wiec nie pokazujemy w
+  // nim tras juz przypisanych (i tak widac je osobno).
+  const pickerOptions = isEdit
+    ? availableRoutes.filter((r) => !assignedRoutes.includes(r))
+    : availableRoutes;
+
+  function handlePickerChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    setPickedToAdd(Array.from(e.target.selectedOptions).map((o) => o.value));
+  }
+
+  function handleRemoveAssigned(route: string) {
+    setAssignedRoutes((rs) => rs.filter((r) => r !== route));
+  }
+
+  function handleAddPicked() {
+    if (pickedToAdd.length === 0) return;
+    setAssignedRoutes((rs) => [...rs, ...pickedToAdd].sort((a, b) => a.localeCompare(b)));
+    setPickedToAdd([]);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -45,11 +63,14 @@ export function SorterForm({
     setSaving(true);
     setError(null);
     try {
+      // Merge na wszelki wypadek, gdyby ktos zaznaczyl cos w selektorze i
+      // od razu kliknal Zapisz bez wczesniejszego "Dodaj zaznaczone".
+      const finalRoutes = Array.from(new Set([...assignedRoutes, ...pickedToAdd]));
       if (sorter) {
         await updateSorterName(sorter.id, name.trim());
-        await replaceSorterRoutes(sorter.id, selectedRoutes);
+        await replaceSorterRoutes(sorter.id, finalRoutes);
       } else {
-        await createSorter({ name: name.trim(), routes: selectedRoutes });
+        await createSorter({ name: name.trim(), routes: finalRoutes });
       }
       onDone();
     } catch {
@@ -81,20 +102,52 @@ export function SorterForm({
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder="np. Jan Kowalski" />
       </label>
 
+      {isEdit && (
+        <div className="file-field">
+          <span>Przypisane trasy ({assignedRoutes.length})</span>
+          {assignedRoutes.length === 0 ? (
+            <p className="hint">Brak przypisanych tras.</p>
+          ) : (
+            <ul className="assigned-routes-list">
+              {assignedRoutes.map((route) => (
+                <li key={route}>
+                  <span>{route}</span>
+                  <button type="button" className="secondary" onClick={() => handleRemoveAssigned(route)}>
+                    ✕
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
       <label className="file-field">
-        <span>Trasy (przytrzymaj Ctrl/Cmd, żeby zaznaczyć kilka)</span>
+        <span>
+          {isEdit ? "Dodaj trasy" : "Trasy"} (przytrzymaj Ctrl/Cmd, żeby zaznaczyć kilka)
+        </span>
         {loadingRoutes ? (
           <p className="hint">Wczytywanie tras...</p>
-        ) : availableRoutes.length === 0 ? (
+        ) : pickerOptions.length === 0 ? (
           <p className="hint">Brak wolnych tras do przypisania.</p>
         ) : (
-          <select multiple size={8} value={selectedRoutes} onChange={handleRoutesChange}>
-            {availableRoutes.map((trasa) => (
+          <select multiple size={8} value={pickedToAdd} onChange={handlePickerChange}>
+            {pickerOptions.map((trasa) => (
               <option key={trasa} value={trasa}>
                 {trasa}
               </option>
             ))}
           </select>
+        )}
+        {isEdit && pickerOptions.length > 0 && (
+          <button
+            type="button"
+            className="secondary"
+            onClick={handleAddPicked}
+            disabled={pickedToAdd.length === 0}
+          >
+            Dodaj zaznaczone
+          </button>
         )}
       </label>
 
