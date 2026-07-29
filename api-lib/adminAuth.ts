@@ -18,7 +18,10 @@ export class AdminAuthError extends Error {
 
 function requiredEnv(name: string): string {
   const value = process.env[name];
-  if (!value) throw new Error(`Brak zmiennej srodowiskowej ${name}`);
+  if (!value) {
+    console.error(`adminAuth: brak zmiennej srodowiskowej ${name}`);
+    throw new Error(`Brak zmiennej srodowiskowej ${name}`);
+  }
   return value;
 }
 
@@ -44,6 +47,7 @@ export async function requireAdmin(
 
   const { data: userData, error: userError } = await supabaseAdmin.auth.getUser(jwt);
   if (userError || !userData.user) {
+    console.error("adminAuth: getUser failed", userError);
     throw new AdminAuthError(401, "Sesja wygasla lub jest nieprawidlowa.");
   }
 
@@ -54,6 +58,7 @@ export async function requireAdmin(
     .single();
 
   if (profileError || profile?.role !== "admin") {
+    console.error("adminAuth: profile lookup failed lub brak roli admin", profileError, profile);
     throw new AdminAuthError(403, "Brak uprawnien administratora.");
   }
 
