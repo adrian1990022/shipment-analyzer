@@ -9,6 +9,8 @@ import { hasTrasaLevel } from "./modules/dashboard/grouping";
 import { ImportScreen } from "./modules/import/ImportScreen";
 import { RoutesAdmin } from "./modules/referenceData/RoutesAdmin";
 import { SortersAdmin } from "./modules/sorters/SortersAdmin";
+import { SorterAddScreen } from "./modules/sorters/SorterAddScreen";
+import { SorterEditScreen } from "./modules/sorters/SorterEditScreen";
 import { useNavigation } from "./navigation/useNavigation";
 
 type View =
@@ -18,7 +20,9 @@ type View =
   | { screen: "trasa"; grupa: Grupa; sortujacy: string; trasa: string }
   | { screen: "import" }
   | { screen: "reference-data" }
-  | { screen: "sorters" };
+  | { screen: "sorters" }
+  | { screen: "sorters-add" }
+  | { screen: "sorters-edit"; sorterId: number };
 
 const HOME: View = { screen: "dashboard" };
 
@@ -122,7 +126,18 @@ export default function App() {
 
       {view.screen === "reference-data" && <RoutesAdmin />}
 
-      {view.screen === "sorters" && <SortersAdmin />}
+      {view.screen === "sorters" && (
+        <SortersAdmin
+          onAdd={() => nav.navigate({ screen: "sorters-add" })}
+          onEdit={(sorterId) => nav.navigate({ screen: "sorters-edit", sorterId })}
+        />
+      )}
+
+      {view.screen === "sorters-add" && <SorterAddScreen onDone={nav.goBack} onBack={nav.goBack} />}
+
+      {view.screen === "sorters-edit" && (
+        <SorterEditScreen sorterId={view.sorterId} onDone={nav.goBack} onBack={nav.goBack} />
+      )}
     </div>
   );
 }

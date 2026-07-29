@@ -1,12 +1,18 @@
 import { useEffect, useState } from "react";
 import {
   createSorter,
-  fetchAvailableRoutes,
+  fetchRouteAssignmentStatus,
   replaceSorterRoutes,
   setSorterActive,
   updateSorterName,
 } from "../repository/sorterRepository";
 import type { SorterWithRoutes } from "../../types/sorter";
+
+// Jasne, stonowane tla opcji w selektorze -- czerwony = trasa nalezy juz
+// do innego sortujacego (mozna ja "przejac" zaznaczajac i zapisujac),
+// zielony = trasa wolna.
+const TAKEN_BG = "rgba(248, 113, 113, 0.22)";
+const FREE_BG = "rgba(74, 222, 128, 0.22)";
 
 export function SorterForm({
   sorter,
@@ -23,25 +29,25 @@ export function SorterForm({
   const [active, setActive] = useState(sorter?.active ?? true);
   const [assignedRoutes, setAssignedRoutes] = useState<string[]>(sorter?.routes ?? []);
   const [pickedToAdd, setPickedToAdd] = useState<string[]>([]);
-  const [availableRoutes, setAvailableRoutes] = useState<string[]>([]);
+  const [routeStatuses, setRouteStatuses] = useState<
+    { trasa: string; assignedToSorterId: number | null }[]
+  >([]);
   const [loadingRoutes, setLoadingRoutes] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchAvailableRoutes(sorter?.id)
-      .then(setAvailableRoutes)
+    fetchRouteAssignmentStatus()
+      .then(setRouteStatuses)
       .catch(() => setError("Nie udalo sie wczytac listy tras."))
       .finally(() => setLoadingRoutes(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // W trybie edycji przypisane trasy maja wlasne okienko (nizej) --
-  // selektor sluzy juz tylko do dokladania nowych, wiec nie pokazujemy w
-  // nim tras juz przypisanych (i tak widac je osobno).
-  const pickerOptions = isEdit
-    ? availableRoutes.filter((r) => !assignedRoutes.includes(r))
-    : availableRoutes;
+  // selektor sluzy juz tylko do dokladania/przejmowania, wiec nie
+  // pokazujemy w nim tras juz przypisanych temu sortujacemu (i tak widac
+  // je osobno). Pozostale trasy (wolne i cudze) zostaja pokolorowane.
+  const pickerOptions = routeStatuses.filter((r) => !assignedRoutes.includes(r.trasa));
 
   function handlePickerChange(e: React.ChangeEvent<HTMLSelectElement>) {
     setPickedToAdd(Array.from(e.target.selectedOptions).map((o) => o.value));
@@ -124,16 +130,21 @@ export function SorterForm({
 
       <label className="file-field">
         <span>
-          {isEdit ? "Dodaj trasy" : "Trasy"} (przytrzymaj Ctrl/Cmd, żeby zaznaczyć kilka)
+          {isEdit ? "Dodaj trasy" : "Trasy"} (przytrzymaj Ctrl/Cmd, żeby zaznaczyć kilka) — na
+          czerwono trasy zajęte przez innego sortującego (wybór przejmie je), na zielono wolne
         </span>
         {loadingRoutes ? (
           <p className="hint">Wczytywanie tras...</p>
         ) : pickerOptions.length === 0 ? (
-          <p className="hint">Brak wolnych tras do przypisania.</p>
+          <p className="hint">Brak tras do pokazania.</p>
         ) : (
           <select multiple size={8} value={pickedToAdd} onChange={handlePickerChange}>
-            {pickerOptions.map((trasa) => (
-              <option key={trasa} value={trasa}>
+            {pickerOptions.map(({ trasa, assignedToSorterId }) => (
+              <option
+                key={trasa}
+                value={trasa}
+                style={{ backgroundColor: assignedToSorterId === null ? FREE_BG : TAKEN_BG }}
+              >
                 {trasa}
               </option>
             ))}

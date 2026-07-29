@@ -5,6 +5,22 @@ stanu aplikacji. Każdy wpis tutaj odpowiada jednemu commitowi w gita
 (`git log` pokaże dokładny diff; `git checkout <hash> -- .` albo
 `git revert <hash>` pozwala się cofnąć do/po danej zmianie).
 
+## 2026-07-29 — Sortujący: lista tras w tabeli, poprawka nawigacji, kolory w selektorze
+
+- Lista sortujących: kolumna "Liczba przypisanych tras" zastąpiona
+  kolumną "Trasy" — wypisuje przypisane trasy po przecinku, mniejszą
+  czcionką, zamiast samej liczby.
+- Naprawiona nawigacja wstecz: ekrany dodawania/edycji sortującego
+  (`sorters-add`, `sorters-edit`) są teraz częścią historii nawigacji
+  (`useNavigation`), a nie lokalnego stanu komponentu — wcześniej cofanie
+  z edycji trafiało na Dashboard zamiast do listy Sortujący, bo hardware
+  back nie "widział" wewnętrznego przełącznika trybu.
+- Selektor tras w formularzu (dodawanie/edycja) pokazuje teraz też trasy
+  przypisane innym sortującym — na czerwono (zajęta, wybór i zapis
+  przejmuje ją) — obok wolnych, na zielono. `replaceSorterRoutes` używa
+  teraz upsert po `route` zamiast insert, żeby przejęcie nie wywalało
+  błędu unique constraint.
+
 ## 2026-07-29 — Poprawka sortowania: "Sortujący 2" przed "Sortujący 10"
 
 - Sortowanie po nazwie sortującego (lista) i kafelki sortujących na

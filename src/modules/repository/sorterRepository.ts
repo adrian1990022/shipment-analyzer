@@ -41,6 +41,14 @@ export async function fetchSorters(): Promise<SorterWithRoutes[]> {
   }));
 }
 
+// Pojedynczy sortujacy do ekranu edycji -- prosciej i wystarczajaco
+// szybko przy tej skali danych, zeby wykorzystac ten sam fetchSorters()
+// zamiast duplikowac logike joina.
+export async function fetchSorterById(id: number): Promise<SorterWithRoutes | null> {
+  const all = await fetchSorters();
+  return all.find((s) => s.id === id) ?? null;
+}
+
 // Trasa (routes.trasa) -> nazwa sortujacego. Uzywane wylacznie przez
 // Mapper (patrz modules/mapper/mapRoutes.ts) do przypisania sortujacego
 // -- nie zaleznie od pola "active": brak wpisu = fallback (3. litera
@@ -66,10 +74,19 @@ export async function fetchSorterNameByTrasa(): Promise<Map<string, string>> {
   return map;
 }
 
-// Trasy z routes, ktore mozna zaproponowac w multi-select: wolne (nigdzie
-// nieprzypisane) plus -- przy edycji -- te juz nalezace do edytowanego
-// sortujacego (zeby nie znikaly z listy podczas edycji).
-export async function fetchAvailableRoutes(currentSorterId?: number): Promise<string[]> {
+export interface RouteAssignmentStatus {
+  trasa: string;
+  // null = wolna. Inaczej id sortujacego, do ktorego trasa jest juz
+  // przypisana (moze byc innym niz aktualnie edytowany).
+  assignedToSorterId: number | null;
+}
+
+// Status KAZDEJ trasy z routes wzgledem sorter_routes -- do pokolorowania
+// selektora w SorterForm (wolna / zajeta przez kogos innego). W
+// przeciwienstwie do dawnego fetchAvailableRoutes nic tu nie jest
+// odfiltrowywane -- filtrowanie "nie pokazuj wlasnych" robi juz SorterForm,
+// zeby ten modul zostal prostym odczytem stanu, a nie decyzja UI.
+export async function fetchRouteAssignmentStatus(): Promise<RouteAssignmentStatus[]> {
   const [routesRes, assignedRes] = await Promise.all([
     supabase.from("routes").select("trasa"),
     supabase.from("sorter_routes").select("route, sorter_id"),
@@ -77,15 +94,18 @@ export async function fetchAvailableRoutes(currentSorterId?: number): Promise<st
   if (routesRes.error) throw routesRes.error;
   if (assignedRes.error) throw assignedRes.error;
 
+  const assignedBySorter = new Map<string, number>();
+  for (const row of assignedRes.data ?? []) {
+    assignedBySorter.set(row.route, row.sorter_id);
+  }
+
   const allTrasa = Array.from(new Set((routesRes.data ?? []).map((r) => r.trasa))).sort((a, b) =>
     a.localeCompare(b)
   );
-  const assignedToOthers = new Set(
-    (assignedRes.data ?? [])
-      .filter((r) => r.sorter_id !== currentSorterId)
-      .map((r) => r.route)
-  );
-  return allTrasa.filter((trasa) => !assignedToOthers.has(trasa));
+  return allTrasa.map((trasa) => ({
+    trasa,
+    assignedToSorterId: assignedBySorter.get(trasa) ?? null,
+  }));
 }
 
 export async function createSorter(input: { name: string; routes: string[] }): Promise<void> {
@@ -110,18 +130,25 @@ export async function setSorterActive(id: number, active: boolean): Promise<void
   if (error) throw error;
 }
 
-// Nadpisuje CALY zestaw tras danego sortujacego (usun + wstaw od nowa) --
-// prostsze i wystarczajaco szybkie przy tej skali danych niz liczenie diffu.
+// Nadpisuje CALY zestaw tras danego sortujacego: usun jego stare wiersze,
+// potem upsert nowego zestawu po "route" (nie insert!) -- jesli ktoras
+// trasa nalezala do INNEGO sortujacego, upsert po prostu przepisuje jej
+// sorter_id, zamiast wywalic blad unique constraint. To swiadomie
+// umozliwia "przejecie" trasy widocznej jako zajeta (na czerwono) w
+// selektorze SorterForm.
 export async function replaceSorterRoutes(sorterId: number, routes: string[]): Promise<void> {
   const { error: deleteError } = await supabase.from("sorter_routes").delete().eq("sorter_id", sorterId);
   if (deleteError) throw deleteError;
 
   if (routes.length === 0) return;
 
-  const { error: insertError } = await supabase
+  const { error: upsertError } = await supabase
     .from("sorter_routes")
-    .insert(routes.map((route) => ({ sorter_id: sorterId, route })));
-  if (insertError) throw insertError;
+    .upsert(
+      routes.map((route) => ({ sorter_id: sorterId, route })),
+      { onConflict: "route" }
+    );
+  if (upsertError) throw upsertError;
 }
 
 export async function deleteSorter(id: number): Promise<void> {

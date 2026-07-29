@@ -2,15 +2,17 @@ import { useEffect, useMemo, useState } from "react";
 import { deleteSorter, fetchSorters } from "../repository/sorterRepository";
 import { naturalCompare } from "../normalizer/normalize";
 import type { SorterWithRoutes } from "../../types/sorter";
-import { SorterForm } from "./SorterForm";
 
-type Mode = { kind: "list" } | { kind: "add" } | { kind: "edit"; sorter: SorterWithRoutes };
-
-export function SortersAdmin() {
+export function SortersAdmin({
+  onAdd,
+  onEdit,
+}: {
+  onAdd: () => void;
+  onEdit: (sorterId: number) => void;
+}) {
   const [sorters, setSorters] = useState<SorterWithRoutes[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [mode, setMode] = useState<Mode>({ kind: "list" });
   const [sortAsc, setSortAsc] = useState(true);
 
   const visibleSorters = useMemo(() => {
@@ -39,37 +41,6 @@ export function SortersAdmin() {
     await reload();
   }
 
-  if (mode.kind === "add") {
-    return (
-      <div className="screen">
-        <h1>Sortujący</h1>
-        <SorterForm
-          onDone={() => {
-            setMode({ kind: "list" });
-            reload();
-          }}
-          onCancel={() => setMode({ kind: "list" })}
-        />
-      </div>
-    );
-  }
-
-  if (mode.kind === "edit") {
-    return (
-      <div className="screen">
-        <h1>Sortujący</h1>
-        <SorterForm
-          sorter={mode.sorter}
-          onDone={() => {
-            setMode({ kind: "list" });
-            reload();
-          }}
-          onCancel={() => setMode({ kind: "list" })}
-        />
-      </div>
-    );
-  }
-
   return (
     <div className="screen">
       <h1>Sortujący</h1>
@@ -78,7 +49,7 @@ export function SortersAdmin() {
         do sortującego wyliczonego regułą awaryjną (3. litera trasy).
       </p>
 
-      <button onClick={() => setMode({ kind: "add" })}>+ Dodaj sortującego</button>
+      <button onClick={onAdd}>+ Dodaj sortującego</button>
 
       {error && <p className="error">{error}</p>}
       {loading ? (
@@ -90,7 +61,7 @@ export function SortersAdmin() {
               <th className="sortable" onClick={() => setSortAsc((v) => !v)}>
                 Nazwa sortującego {sortAsc ? "↑" : "↓"}
               </th>
-              <th>Liczba przypisanych tras</th>
+              <th>Trasy</th>
               <th>Status</th>
               <th></th>
             </tr>
@@ -99,11 +70,13 @@ export function SortersAdmin() {
             {visibleSorters.map((s) => (
               <tr key={s.id}>
                 <td>{s.name}</td>
-                <td>{s.routes.length}</td>
+                <td>
+                  <span className="routes-cell">{s.routes.join(", ")}</span>
+                </td>
                 <td>{s.active ? "aktywny" : "nieaktywny"}</td>
                 <td>
                   <div className="actions" style={{ marginTop: 0 }}>
-                    <button className="secondary" onClick={() => setMode({ kind: "edit", sorter: s })}>
+                    <button className="secondary" onClick={() => onEdit(s.id)}>
                       Edytuj
                     </button>
                     <button className="secondary" onClick={() => handleDelete(s.id)}>
