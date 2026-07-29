@@ -5,6 +5,24 @@ stanu aplikacji. Każdy wpis tutaj odpowiada jednemu commitowi w gita
 (`git log` pokaże dokładny diff; `git checkout <hash> -- .` albo
 `git revert <hash>` pozwala się cofnąć do/po danej zmianie).
 
+## 2026-07-30 — Poprawki znalezione przy weryfikacji logowania
+
+Przy end-to-end teście funkcji `api/admin-*.ts` (przez curl, z prawdziwym
+kontem admina) wyszły dwa błędy:
+
+- `ERR_MODULE_NOT_FOUND` dla `api-lib/adminAuth` — Node ESM (repo ma
+  `"type": "module"`) wymaga jawnego rozszerzenia `.js` w imporcie
+  relatywnym; działało w lokalnym typecheck (tam liczą się typy, nie
+  runtime resolution), ale nie na Vercelu. Wszystkie trzy endpointy
+  kończyły się 500 zanim doszły do jakiejkolwiek logiki.
+- Brak `console.error` przy błędach w `api/admin-*.ts` — Vercel logs
+  pokazywały pusty `message`, więc diagnoza pierwszego błędu wymagała
+  zgadywania. Dodane logowanie w każdym punkcie awarii.
+
+Po poprawkach pełny łańcuch (logowanie → dodanie użytkownika → zmiana
+hasła → blokada samo-usunięcia → usunięcie z kasowaniem profilu →
+403 dla nie-admina) zweryfikowany end-to-end i działa.
+
 ## 2026-07-29 — Logowanie i zarządzanie użytkownikami (Supabase Auth + RLS)
 
 Domyka punkt z audytu bezpieczeństwa 2026-07-26, który wtedy został
