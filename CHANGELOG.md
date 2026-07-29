@@ -5,6 +5,39 @@ stanu aplikacji. Każdy wpis tutaj odpowiada jednemu commitowi w gita
 (`git log` pokaże dokładny diff; `git checkout <hash> -- .` albo
 `git revert <hash>` pozwala się cofnąć do/po danej zmianie).
 
+## 2026-07-29 — Logowanie i zarządzanie użytkownikami (Supabase Auth + RLS)
+
+Domyka punkt z audytu bezpieczeństwa 2026-07-26, który wtedy został
+świadomie odłożony (RLS otwarte, brak logowania).
+
+- Supabase Auth, logowanie loginem (nie e-mailem — login mapowany
+  deterministycznie na syntetyczny e-mail `@shipment-analyzer.local`,
+  nigdy pokazywany użytkownikowi).
+- Dwie role: `admin` (pełny dostęp do wszystkiego) i `user` (tylko
+  Dashboard — podgląd/filtrowanie/sortowanie, bez importu i zarządzania).
+- Nowa tabela `profiles` (login + rola), funkcja `is_admin()`
+  (`security definer`, unika rekurencji RLS przy sprawdzaniu roli z tej
+  samej tabeli, którą polityka chroni).
+- Nowa zakładka **Użytkownicy** (tylko admin): lista, dodawanie
+  (zawsze rola `user`, bez wyboru), zmiana hasła bez e-maila, usuwanie
+  z potwierdzeniem.
+- **Kluczowa decyzja architektoniczna:** operacje admina na kontach
+  wymagają klucza `service_role` (pełny bypass RLS + admin auth) —
+  taki klucz nigdy nie może trafić do kodu przeglądarki. Rozwiązanie:
+  trzy wąskie Vercel Serverless Functions (`api/admin-*.ts`), które same
+  weryfikują sesję i rolę admina, zanim wykonają operację uprzywilejowaną.
+  `UserRepository` w froncie woła je przez `fetch`, nigdy nie dotyka
+  `service_role`.
+- Menu użytkownika w prawym górnym rogu (login, rola, "Wyloguj").
+  Ekrany admina dodatkowo owinięte `AdminRoute` — obrona w głąb, gdyby
+  stan nawigacji jakoś tam trafił bez nav-linka (przekierowanie na
+  Dashboard).
+- **Wdrożenie dwuetapowe, żeby nie zablokować dostępu:** migracja
+  `0006_auth.sql` (profiles + is_admin, RLS reszty tabel bez zmian) →
+  kod wdrożony i przetestowany z prawdziwym logowaniem → dopiero wtedy
+  `0007_lock_down_rls.sql` (usuwa `using (true)`, zamyka anonimowy
+  dostęp). Pipeline (Parser→...→Repository) bez zmian.
+
 ## 2026-07-29 — Filtr po grupie w "Dane referencyjne"
 
 - Nad tabelą doszła rozwijana lista "Filtruj po grupie" (Wszystkie /

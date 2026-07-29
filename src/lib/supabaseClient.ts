@@ -1,8 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
 
-// Ten plik jest importowany WYLACZNIE przez modul repository/*.
-// UI (komponenty, hooki ekranowe) nigdy nie importuje tego pliku
-// bezposrednio -- to wymuszenie zasady "UI nie komunikuje sie
+// Ten plik jest importowany WYLACZNIE przez modul repository/* oraz
+// modules/auth/authService.ts (jedyny plik auth, ktory dotyka
+// supabase.auth.*). UI (komponenty, hooki ekranowe) nigdy nie importuje
+// tego pliku bezposrednio -- to wymuszenie zasady "UI nie komunikuje sie
 // bezposrednio z Supabase".
 
 const url = import.meta.env.VITE_SUPABASE_URL;
