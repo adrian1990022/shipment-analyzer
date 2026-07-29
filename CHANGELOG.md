@@ -5,6 +5,12 @@ stanu aplikacji. Każdy wpis tutaj odpowiada jednemu commitowi w gita
 (`git log` pokaże dokładny diff; `git checkout <hash> -- .` albo
 `git revert <hash>` pozwala się cofnąć do/po danej zmianie).
 
+## 2026-07-29 — Filtr po grupie w "Dane referencyjne"
+
+- Nad tabelą doszła rozwijana lista "Filtruj po grupie" (Wszystkie /
+  P1 / P2 / P3) — zawęża widoczne wiersze, działa razem z sortowaniem
+  po kolumnach.
+
 ## 2026-07-29 — Sortowanie po każdej kolumnie (Dane referencyjne, Sortujący)
 
 - "Dane referencyjne": każda kolumna (Chute ID, Trasa, Grupa) ma teraz

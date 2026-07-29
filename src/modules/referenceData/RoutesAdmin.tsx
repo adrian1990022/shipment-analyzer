@@ -5,6 +5,7 @@ import type { RouteRef } from "../../types/shipment";
 const EMPTY_FORM = { chuteId: "", trasa: "", grupa: "P1" as "P1" | "P2" | "P3" };
 
 type SortKey = "chuteId" | "trasa" | "grupa";
+type GrupaFilter = "ALL" | "P1" | "P2" | "P3";
 
 export function RoutesAdmin() {
   const [routes, setRoutes] = useState<RouteRef[]>([]);
@@ -14,14 +15,16 @@ export function RoutesAdmin() {
   const [saving, setSaving] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>("chuteId");
   const [sortAsc, setSortAsc] = useState(true);
+  const [grupaFilter, setGrupaFilter] = useState<GrupaFilter>("ALL");
 
   const visibleRoutes = useMemo(() => {
-    const sorted = [...routes].sort((a, b) => {
+    const filtered = grupaFilter === "ALL" ? routes : routes.filter((r) => r.grupa === grupaFilter);
+    const sorted = [...filtered].sort((a, b) => {
       const cmp = a[sortKey].localeCompare(b[sortKey]);
       return sortAsc ? cmp : -cmp;
     });
     return sorted;
-  }, [routes, sortKey, sortAsc]);
+  }, [routes, grupaFilter, sortKey, sortAsc]);
 
   function toggleSort(key: SortKey) {
     if (key === sortKey) {
@@ -110,7 +113,22 @@ export function RoutesAdmin() {
       {loading ? (
         <p className="hint">Wczytywanie...</p>
       ) : (
-        <table className="data-table">
+        <>
+          <div className="form-row" style={{ marginBottom: 12 }}>
+            <label className="file-field" style={{ marginBottom: 0 }}>
+              <span>Filtruj po grupie</span>
+              <select
+                value={grupaFilter}
+                onChange={(e) => setGrupaFilter(e.target.value as GrupaFilter)}
+              >
+                <option value="ALL">Wszystkie</option>
+                <option value="P1">P1</option>
+                <option value="P2">P2</option>
+                <option value="P3">P3</option>
+              </select>
+            </label>
+          </div>
+          <table className="data-table">
           <thead>
             <tr>
               <th className="sortable" onClick={() => toggleSort("chuteId")}>
@@ -139,7 +157,8 @@ export function RoutesAdmin() {
               </tr>
             ))}
           </tbody>
-        </table>
+          </table>
+        </>
       )}
     </div>
   );
