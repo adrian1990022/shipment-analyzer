@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { deleteSorter, fetchSorters } from "../repository/sorterRepository";
+import { naturalCompare } from "../normalizer/normalize";
 import type { SorterWithRoutes } from "../../types/sorter";
 import { SorterForm } from "./SorterForm";
 
@@ -13,7 +14,7 @@ export function SortersAdmin() {
   const [sortAsc, setSortAsc] = useState(true);
 
   const visibleSorters = useMemo(() => {
-    const sorted = [...sorters].sort((a, b) => a.name.localeCompare(b.name));
+    const sorted = [...sorters].sort((a, b) => naturalCompare(a.name, b.name));
     return sortAsc ? sorted : sorted.reverse();
   }, [sorters, sortAsc]);
 

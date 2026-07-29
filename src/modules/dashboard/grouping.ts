@@ -1,11 +1,13 @@
 import type { Grupa, Shipment } from "../../types/shipment";
+import { naturalCompare } from "../normalizer/normalize";
 
 export const GRUPY: Grupa[] = ["P1", "P2", "P3", "COY004"];
 
-// P1/P3 maja jawne przypisanie sortujacego -> Brama (routes.sortujacy) i
-// dostaja dodatkowy poziom nawigacji (sortujacy -> trasa -> tabela). P2
-// (i COY004) zostaja przy plaskim ukladzie sortujacy -> tabela, bo sortujacy
-// jest tam nadal wyliczany z 3. litery trasy, nie jawnie przypisany.
+// P1/P3 maja jawne przypisanie sortujacego -> trasa (sorters/sorter_routes,
+// patrz SorterRepository) i dostaja dodatkowy poziom nawigacji (sortujacy
+// -> trasa -> tabela). P2 (i COY004) zostaja przy plaskim ukladzie
+// sortujacy -> tabela, bo sortujacy jest tam nadal wyliczany z 3. litery
+// trasy, nie jawnie przypisany.
 export function hasTrasaLevel(grupa: Grupa): boolean {
   return grupa === "P1" || grupa === "P3";
 }
@@ -28,16 +30,6 @@ export interface SorterSummary {
   trasy: string[];
 }
 
-// Sortujacy bywa liczba (P1/P3, np. "1".."17") albo litera (P2, fallback
-// z 3. litery trasy) -- porownujemy numerycznie gdy oba wpisy sa liczbami,
-// inaczej alfabetycznie, zeby "10" nie wypadlo przed "2".
-function compareSortujacy(a: string, b: string): number {
-  const na = Number(a);
-  const nb = Number(b);
-  if (!Number.isNaN(na) && !Number.isNaN(nb)) return na - nb;
-  return a.localeCompare(b);
-}
-
 export function sortersInGrupa(shipments: Shipment[]): SorterSummary[] {
   const bucket = new Map<string, { count: number; trasy: Set<string> }>();
   for (const s of shipments) {
@@ -52,7 +44,7 @@ export function sortersInGrupa(shipments: Shipment[]): SorterSummary[] {
       count,
       trasy: Array.from(trasy).sort((a, b) => a.localeCompare(b)),
     }))
-    .sort((a, b) => compareSortujacy(a.sortujacy, b.sortujacy));
+    .sort((a, b) => naturalCompare(a.sortujacy, b.sortujacy));
 }
 
 export function shipmentsForSorter(shipments: Shipment[], sortujacy: string): Shipment[] {

@@ -5,6 +5,16 @@ stanu aplikacji. Każdy wpis tutaj odpowiada jednemu commitowi w gita
 (`git log` pokaże dokładny diff; `git checkout <hash> -- .` albo
 `git revert <hash>` pozwala się cofnąć do/po danej zmianie).
 
+## 2026-07-29 — Poprawka sortowania: "Sortujący 2" przed "Sortujący 10"
+
+- Sortowanie po nazwie sortującego (lista) i kafelki sortujących na
+  Dashboardzie (P1/P3) używały zwykłego porównania tekstowego, więc
+  "Sortujący 10" wypadał przed "Sortujący 2". Zamienione na
+  `Intl.Collator` z opcją `numeric: true` (`normalizer/normalize.ts`,
+  `naturalCompare`) — rozpoznaje liczby wewnątrz tekstu i porównuje je
+  liczbowo, działa tak samo dobrze dla samych numerów jak i prawdziwych
+  imion bez cyfr.
+
 ## 2026-07-29 — Czytelniejsza edycja sortującego, sortowanie listy
 
 - Lista w zakładce Sortujący: kliknięcie nagłówka "Nazwa sortującego"

@@ -66,3 +66,13 @@ export function isSameLocalDay(a: Date, b: Date): boolean {
     a.getDate() === b.getDate()
   );
 }
+
+// Zwykle localeCompare sortuje "Sortujący 10" przed "Sortujący 2" (porownanie
+// znak po znaku). Intl.Collator z numeric:true rozpoznaje liczby wewnatrz
+// tekstu i porownuje je jako liczby -- dziala tak samo dobrze dla samych
+// liczb ("1".."17") jak i dla prawdziwych imion/nazwisk bez cyfr.
+const naturalCollator = new Intl.Collator("pl", { numeric: true, sensitivity: "base" });
+
+export function naturalCompare(a: string, b: string): number {
+  return naturalCollator.compare(a, b);
+}
