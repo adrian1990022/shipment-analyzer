@@ -5,6 +5,29 @@ stanu aplikacji. Każdy wpis tutaj odpowiada jednemu commitowi w gita
 (`git log` pokaże dokładny diff; `git checkout <hash> -- .` albo
 `git revert <hash>` pozwala się cofnąć do/po danej zmianie).
 
+## 2026-07-30 — Sprint Stabilizacyjny 1.0, część 3: backup/restore danych referencyjnych
+
+- Nowa sekcja "Kopia zapasowa" na dole ekranu **Dane referencyjne**:
+  eksport (`routes`/`sorters`/`sorter_routes` jako plik JSON) i import
+  z podglądem błędów walidacji, potwierdzeniem ("Obecna konfiguracja
+  zostanie zastąpiona...") i podsumowaniem liczb po imporcie.
+- **Prawdziwa transakcyjność importu** — nie "najlepsze starania".
+  Supabase REST nie ma pojęcia transakcji obejmującej kilka osobnych
+  zapytań z przeglądarki, więc cały import robi jedna funkcja SQL
+  (`replace_reference_data`, migracja `0008_backup_restore.sql`)
+  wywoływana przez `supabase.rpc(...)` — błąd w dowolnym miejscu (zła
+  `grupa`, zerwana referencja) cofa WSZYSTKO w ramach jednej transakcji
+  Postgresa.
+- Format: `{ appVersion, schemaVersion, createdAt, createdBy, routes,
+  sorters, sorterRoutes }` — `sorterRoutes` referencjonuje sortujących
+  po nazwie (`sorterName`), nie po id (ID są nadawane od nowa przy
+  każdym imporcie).
+- Nowe moduły: `ReferenceBackupService` (cała logika — eksport,
+  walidacja, wersjonowanie; komponenty React nie znają formatu JSON) i
+  `backupRepository` (jedyny plik wołający RPC).
+- 25 nowych testów (walidacja: brak pól, zła wersja schematu, zerwane
+  referencje, zdeformowane wpisy w tablicach).
+
 ## 2026-07-30 — Sprint Stabilizacyjny 1.0, część 1: testy jednostkowe
 
 Bez zmian w pipeline'ie biznesowym — same testy chroniące go przed

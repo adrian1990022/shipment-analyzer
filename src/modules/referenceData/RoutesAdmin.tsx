@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { deleteRoute, fetchRoutes, upsertRoute } from "../repository/routesRepository";
+import { BackupPanel } from "../backup/BackupPanel";
 import type { RouteRef } from "../../types/shipment";
 
 const EMPTY_FORM = { chuteId: "", trasa: "", grupa: "P1" as "P1" | "P2" | "P3" };
@@ -160,6 +161,8 @@ export function RoutesAdmin() {
           </table>
         </>
       )}
+
+      <BackupPanel onImported={reload} />
     </div>
   );
 }
