@@ -22,6 +22,8 @@ npm run dev
 
 `npm run build` — build produkcyjny (PWA, service worker).
 `npm run typecheck` — tylko sprawdzenie typów.
+`npm test` — testy jednostkowe (Vitest). `npm run test:coverage` — z
+raportem pokrycia (patrz sekcja [Testy](#testy)).
 
 ## Konfiguracja Supabase
 
@@ -55,6 +57,9 @@ npm run dev
 4. Zaloguj się w aplikacji, potwierdź że widzisz pełny panel. Dopiero
    teraz uruchom `supabase/migrations/0007_lock_down_rls.sql` — to
    nieodwracalny krok zamykający anonimowy dostęp do danych.
+5. Uruchom `supabase/migrations/0008_backup_restore.sql` — dodaje
+   funkcję `replace_reference_data`, potrzebną do importu kopii
+   zapasowej (patrz [Backup / restore](#backup--restore-danych-referencyjnych)).
 
 ### Dlaczego tak, a nie inaczej (żeby każdą decyzję dało się wyjaśnić)
 
@@ -110,6 +115,124 @@ Do momentu akceptacji nic nie jest zapisywane — `runImportPipeline`
 (`src/modules/import/pipeline.ts`) działa wyłącznie w pamięci (poza
 odczytem tabeli `routes`, potrzebnym do mapowania).
 
+## Testy
+
+```bash
+npm test              # jednorazowy przebieg (CI-friendly)
+npm run test:watch    # tryb watch przy pracy nad kodem
+npm run test:coverage # jak wyzej + raport pokrycia (text + HTML w coverage/)
+```
+
+Vitest, środowisko `node` (nie `jsdom`) — testowana jest wyłącznie
+**logika biznesowa** (Parser, Normalizer, Join, Date Filter, Deduplicate,
+Mapper, Analyzer, Repository, Backup), nigdzie nie renderujemy
+komponentów React (`.tsx`). Konfiguracja progów pokrycia w
+[`vitest.config.ts`](vitest.config.ts): 90% globalnie (statements/branches/
+functions/lines) dla katalogów objętych `coverage.include`, ze 100%
+wymaganym dla `parser/**`, `mapper/**`, `joiner/**`, `dateFilter/**` —
+moduły, gdzie regresja wprost oznacza błędne dane w produkcji (to już
+raz się zdarzyło: literówka w nagłówku kolumny przechodziła niezauważona
+przez ręczne testy).
+
+Parser testowany na **prawdziwych plikach `.xlsx`** budowanych w pamięci
+przez SheetJS (`src/test/xlsxFixture.ts`), nie na atrapach formatu —
+dokładnie po to, żeby łapać różnice wielkości liter/spacji w nagłówkach.
+Repository mockuje `lib/supabaseClient` (`src/test/supabaseMock.ts`),
+nie łączy się z prawdziwą bazą.
+
+## Monitoring (Sentry)
+
+Błędy zgłaszane do [Sentry](https://sentry.io) — front-end (React) i
+Vercel Serverless Functions (`api/*.ts`) osobnymi SDK (`@sentry/react` /
+`@sentry/node`), ale jedna zmienna środowiskowa:
+
+```
+VITE_SENTRY_DSN=https://xxxxx@xxxxx.ingest.sentry.io/xxxxx
+```
+
+Opcjonalna — brak DSN po prostu wyłącza monitoring (np. lokalny dev bez
+konta Sentry), aplikacja działa normalnie. Sam DSN **nie jest sekretem**
+w stylu `SUPABASE_SERVICE_ROLE_KEY` — Sentry projektuje go jako
+bezpieczny do ujawnienia w kodzie klienckim (pozwala tylko *wysyłać*
+zdarzenia, nie czytać danych), więc może trafić do `.env`/Vercel tak
+samo jak `VITE_SUPABASE_ANON_KEY`.
+
+**Architektura** (jeden punkt wejścia, jak `supabaseClient`):
+- `src/lib/sentry.ts` — jedyny plik klienta wołający `Sentry.init(...)`.
+- `src/modules/monitoring/reportError.ts` — jedyna funkcja, przez którą
+  reszta kodu zgłasza błędy (`reportError(err, { module, stage })`).
+  Nikt inny nie importuje `@sentry/react` bezpośrednio.
+- `src/modules/monitoring/ErrorBoundary.tsx` — globalny Error Boundary
+  (owija `AppShell` w `App.tsx`) — użytkownik widzi czytelny komunikat
+  PL, **nigdy stack trace**.
+- `api-lib/sentry.ts` — analogiczny `reportError` dla `api/*.ts`.
+
+**Co jest wysyłane:** wyłącznie informacje techniczne — treść/stack
+błędu, `module`/`stage` (np. `shipmentsRepository`/`fetchShipments`,
+`import`/`pipeline`, `react`/`render`), środowisko i release (krótki SHA
+gita, wstrzykiwany przez `vite.config.ts` przy buildzie — grupuje
+zdarzenia per-deploy).
+
+**Co NIGDY nie jest wysyłane:** Shipment ID, dane odbiorcy (nazwa,
+adres), loginy, hasła, treść raportów. Zapewnione projektowo —
+`reportError` nigdy nie dostaje surowych obiektów domenowych
+(`Shipment`/`Profile`/`User`), tylko `{module, stage}` — plus
+`beforeSend` w `lib/sentry.ts` jako dodatkowa obrona (usuwa
+cookies/nagłówek `Authorization`/podejrzane klucze typu `password`,
+`shipmentId`, `username`, `address`, `token`, `login`, gdyby ktoś kiedyś
+pomyłkowo przekazał je dalej).
+
+**Świadomie NIE zgłaszane do Sentry** (to oczekiwane wyniki, nie
+incydenty): `PipelineError` (zły plik, nierozpoznane nagłówki — user
+widzi komunikat, ale to nie błąd aplikacji), zwykłe odpowiedzi 4xx z
+`api/admin-*.ts` (np. "login zajęty").
+
+## Backup / restore danych referencyjnych
+
+Zakładka **Dane referencyjne** (admin) ma sekcję "Kopia zapasowa" —
+eksport/import **wyłącznie** `routes` + `sorters` + `sorter_routes`
+(świadomie NIE obejmuje `shipments`, `imports`, `users`/`profiles`).
+
+Format JSON: `{ appVersion, schemaVersion, createdAt, createdBy, routes,
+sorters, sorterRoutes }`. `sorterRoutes[].sorterId` referencjonuje
+sortującego po **id z chwili eksportu**, nie po nazwie — imiona nie są
+unikalne (w danych bywają dwie osoby o tym samym imieniu), więc
+referencja po nazwie łączyłaby ich przypisania tras w jedno.
+
+**Prawdziwa transakcyjność** — nie "najlepsze starania". Import to
+jedno wywołanie funkcji Postgres `replace_reference_data`
+(`supabase/migrations/0008_backup_restore.sql`) przez `supabase.rpc(...)`:
+całe jej ciało to jedna transakcja SQL, błąd w dowolnym miejscu (zła
+`grupa`, zerwana referencja) cofa WSZYSTKO. Cała logika (budowanie
+JSON, walidacja, wersjonowanie) żyje w `ReferenceBackupService`
+(`src/modules/backup/referenceBackupService.ts`) — komponenty React
+nie znają formatu pliku.
+
+### Jak odtworzyć dane z kopii zapasowej — krok po kroku
+
+1. Zaloguj się jako administrator, wejdź w **Dane referencyjne**.
+2. W sekcji "Kopia zapasowa" kliknij **Importuj kopię zapasową** i
+   wybierz plik `.json` wcześniej pobrany przyciskiem "Eksportuj kopię
+   zapasową".
+3. Aplikacja waliduje plik PRZED jakąkolwiek zmianą w bazie (poprawność
+   JSON, zgodność `schemaVersion`, kompletność pól, spójność referencji
+   — każdy `sorterRoutes[].sorterId` musi istnieć w `sorters`, każda
+   `route` w `routes`). Jeśli plik jest niepoprawny, zobaczysz listę
+   błędów i **nic nie zostanie zaimportowane**.
+4. Potwierdź okno "Obecna konfiguracja zostanie zastąpiona. Czy
+   kontynuować?" — to ostatni moment na anulowanie.
+5. Import zastępuje CAŁĄ zawartość `routes`/`sorters`/`sorter_routes`
+   danymi z pliku, w jednej transakcji. Błąd w trakcie (np. uszkodzone
+   dane) oznacza, że **nic się nie zmienia** — poprzedni stan zostaje
+   nietknięty.
+6. Po sukcesie zobaczysz podsumowanie liczbowe (ile tras/sortujących/
+   przypisań zaimportowano) i lista w tabeli odświeży się automatycznie.
+
+Jeśli import się nie powiedzie z innego powodu (np. utrata połączenia
+w trakcie), stan bazy jest gwarantowany identyczny jak przed próbą —
+transakcja SQL gwarantuje brak częściowego zapisu. Możesz bezpiecznie
+spróbować ponownie.
+
 ## Struktura katalogów
 
 ```
@@ -130,12 +253,16 @@ src/
     auth/                      AuthProvider, LoginScreen, AdminRoute, authService
     import/                    orkiestracja pipeline'u + ekran importu
     dashboard/                 kafelki grup -> sortujacy -> tabela
-  types/                       modele danych (Report, Shipment, auth)
+    backup/                    eksport/import routes+sorters+sorter_routes (JSON)
+    monitoring/                reportError (jedyne wejscie do Sentry) + ErrorBoundary
+  types/                       modele danych (Report, Shipment, auth, backup)
+  test/                        wspolne fixture'y/mocki dla testow (xlsx, Supabase)
 api/                           Vercel Serverless Functions (admin-create-user,
                                 admin-change-password, admin-delete-user)
 api-lib/                       wspolny kod dla api/* (poza katalogiem api/,
                                 zeby Vercel go nie routowal) -- tu i TYLKO
-                                tu zyje SUPABASE_SERVICE_ROLE_KEY
+                                tu zyje SUPABASE_SERVICE_ROLE_KEY; sentry.ts to
+                                jedyne miejsce w api/** wolajace Sentry.* bezposrednio
 ```
 
 Zasada modularności: **UI nigdy nie importuje `supabaseClient`
