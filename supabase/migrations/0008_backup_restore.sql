@@ -23,12 +23,14 @@ declare
   new_sorter_id bigint;
   sorter_id_by_name jsonb := '{}'::jsonb;
 begin
-  -- "where true" jest wymagane -- Supabase domyslnie blokuje DELETE bez
-  -- klauzuli WHERE (ochrona przed przypadkowym wyczyszczeniem tabeli),
-  -- a tu naprawde chcemy skasowac wszystko.
-  delete from public.sorter_routes where true;
-  delete from public.sorters where true;
-  delete from public.routes where true;
+  -- "where id >= 0" jest wymagane -- ochrona przed przypadkowym DELETE
+  -- bez WHERE odrzuca nawet "where true" (nie referencjonuje zadnej
+  -- kolumny), ale akceptuje warunek na id -- ten sam sprawdzony wzorzec
+  -- co w shipmentsRepository.replaceShipments (dziala tam od poczatku).
+  -- Wszystkie id sa dodatnie (bigint identity), wiec dopasowuje kazdy wiersz.
+  delete from public.sorter_routes where id >= 0;
+  delete from public.sorters where id >= 0;
+  delete from public.routes where id >= 0;
 
   for route in select * from jsonb_array_elements(payload->'routes')
   loop
