@@ -23,9 +23,12 @@ declare
   new_sorter_id bigint;
   sorter_id_by_name jsonb := '{}'::jsonb;
 begin
-  delete from public.sorter_routes;
-  delete from public.sorters;
-  delete from public.routes;
+  -- "where true" jest wymagane -- Supabase domyslnie blokuje DELETE bez
+  -- klauzuli WHERE (ochrona przed przypadkowym wyczyszczeniem tabeli),
+  -- a tu naprawde chcemy skasowac wszystko.
+  delete from public.sorter_routes where true;
+  delete from public.sorters where true;
+  delete from public.routes where true;
 
   for route in select * from jsonb_array_elements(payload->'routes')
   loop
