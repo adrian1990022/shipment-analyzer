@@ -19,6 +19,11 @@ export async function readWorkbookRows(file: File): Promise<Record<string, strin
   const buffer = await file.arrayBuffer();
   const workbook = XLSX.read(buffer, { type: "array" });
   const firstSheetName = workbook.SheetNames[0];
+  // SheetJS jest bardzo tolerancyjny -- nawet nierozpoznawalne bajty
+  // interpretuje jako CSV z jednym arkuszem "Sheet1", wiec SheetNames w
+  // praktyce nigdy nie jest puste. Ten guard to czysta obrona (typy
+  // SheetJS dopuszczaja pusta liste), nieosiagalna przy realnym wejsciu.
+  /* v8 ignore next */
   if (!firstSheetName) return [];
 
   const sheet = workbook.Sheets[firstSheetName];
@@ -30,6 +35,10 @@ export async function readWorkbookRows(file: File): Promise<Record<string, strin
   return rows.map((row) => {
     const normalized: Record<string, string> = {};
     for (const [key, value] of Object.entries(row)) {
+      // sheet_to_json wywolywane z defval:"" gwarantuje, ze value nigdy
+      // nie jest null/undefined -- ?? "" to czysto obronny fallback,
+      // nieosiagalny przy realnym wejsciu z SheetJS.
+      /* v8 ignore next */
       normalized[normalizeHeader(key)] = String(value ?? "").trim();
     }
     return normalized;

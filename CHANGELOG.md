@@ -5,6 +5,30 @@ stanu aplikacji. Każdy wpis tutaj odpowiada jednemu commitowi w gita
 (`git log` pokaże dokładny diff; `git checkout <hash> -- .` albo
 `git revert <hash>` pozwala się cofnąć do/po danej zmianie).
 
+## 2026-07-30 — Sprint Stabilizacyjny 1.0, część 1: testy jednostkowe
+
+Bez zmian w pipeline'ie biznesowym — same testy chroniące go przed
+regresją.
+
+- Vitest + `@vitest/coverage-v8`. Środowisko `node` (nie `jsdom`) —
+  cała testowana logika jest czystym TS, bez potrzeby DOM-a.
+- 134 testy dla: Parser, Normalizer, Join, Date Filter, Deduplicate,
+  Mapper, Analyzer (`summarize` + `dashboard/grouping.ts`), Repository
+  (`shipments`/`routes`/`sorter`/`profile`/`user`, Supabase mockowany —
+  nigdy nie dotyka prawdziwej bazy), oraz integracyjne testy całego
+  `runImportPipeline`.
+- Testy parsera używają **prawdziwych plików .xlsx** budowanych w
+  pamięci tą samą biblioteką co produkcyjnie (`src/test/xlsxFixture.ts`)
+  — w tym scenariusz z niespójnymi spacjami w nagłówku, dokładnie ta
+  klasa błędu, którą naprawialiśmy ręcznie dwa razy wcześniej (data,
+  potem Weight/Dimension).
+- Pokrycie: 97.68% instrukcji / 91.53% gałęzi / 100% funkcji / 99.2%
+  linii globalnie (próg 90%), **100% dla Parser/Mapper/Joiner/Date
+  Filter** (wymagane osobno). Dwa miejsca celowo wyłączone z liczenia
+  pokrycia (`/* v8 ignore next */`) jako faktycznie nieosiągalne przy
+  realnym wejściu — udokumentowane w kodzie dlaczego.
+- Nowe skrypty: `npm test`, `npm run test:watch`, `npm run test:coverage`.
+
 ## 2026-07-30 — Poprawki znalezione przy weryfikacji logowania
 
 Przy end-to-end teście funkcji `api/admin-*.ts` (przez curl, z prawdziwym

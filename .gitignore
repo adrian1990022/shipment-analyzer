@@ -6,3 +6,4 @@ dev-dist/
 *.tsbuildinfo
 .vercel
 .env*
+coverage/
