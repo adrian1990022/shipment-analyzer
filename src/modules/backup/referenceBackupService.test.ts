@@ -21,8 +21,8 @@ function validBackupJson() {
     createdAt: "2026-07-30T00:00:00.000Z",
     createdBy: "admin",
     routes: [{ chuteId: "P1R01", trasa: "WAEX", grupa: "P1" }],
-    sorters: [{ name: "Jan Kowalski", active: true }],
-    sorterRoutes: [{ sorterName: "Jan Kowalski", route: "WAEX" }],
+    sorters: [{ id: 1, name: "Jan Kowalski", active: true }],
+    sorterRoutes: [{ sorterId: 1, route: "WAEX" }],
   });
 }
 
@@ -46,10 +46,25 @@ describe("referenceBackupService", () => {
       expect(backup.schemaVersion).toBe(1);
       expect(backup.createdBy).toBe("admin");
       expect(backup.routes).toEqual([{ chuteId: "P1R01", trasa: "WAEX", grupa: "P1" }]);
-      expect(backup.sorters).toEqual([{ name: "Jan Kowalski", active: true }]);
+      expect(backup.sorters).toEqual([{ id: 1, name: "Jan Kowalski", active: true }]);
       expect(backup.sorterRoutes).toEqual([
-        { sorterName: "Jan Kowalski", route: "WAEX" },
-        { sorterName: "Jan Kowalski", route: "WAEF" },
+        { sorterId: 1, route: "WAEX" },
+        { sorterId: 1, route: "WAEF" },
+      ]);
+    });
+
+    it("rozroznia sortujacych o tej samej nazwie po id (np. dwaj \"Piotrek\")", async () => {
+      fetchRoutes.mockResolvedValue([]);
+      fetchSorters.mockResolvedValue([
+        { id: 13, name: "Piotrek", active: true, createdAt: "t", updatedAt: "t", routes: ["WAJA"] },
+        { id: 22, name: "Piotrek", active: true, createdAt: "t", updatedAt: "t", routes: ["WADA"] },
+      ]);
+
+      const backup = await buildBackup("admin");
+
+      expect(backup.sorterRoutes).toEqual([
+        { sorterId: 13, route: "WAJA" },
+        { sorterId: 22, route: "WADA" },
       ]);
     });
   });
@@ -127,15 +142,15 @@ describe("referenceBackupService", () => {
 
     it("odrzuca sorterRoutes odwolujace sie do nieistniejacego sortujacego", () => {
       const backup = JSON.parse(validBackupJson());
-      backup.sorterRoutes.push({ sorterName: "Ktos Inny", route: "WAEX" });
+      backup.sorterRoutes.push({ sorterId: 999, route: "WAEX" });
       const result = validateBackup(JSON.stringify(backup));
       expect(result.valid).toBe(false);
-      expect(result.errors.some((e) => e.includes("Ktos Inny"))).toBe(true);
+      expect(result.errors.some((e) => e.includes("999"))).toBe(true);
     });
 
     it("odrzuca sorterRoutes odwolujace sie do nieistniejacej trasy", () => {
       const backup = JSON.parse(validBackupJson());
-      backup.sorterRoutes.push({ sorterName: "Jan Kowalski", route: "NIEISTNIEJE" });
+      backup.sorterRoutes.push({ sorterId: 1, route: "NIEISTNIEJE" });
       const result = validateBackup(JSON.stringify(backup));
       expect(result.valid).toBe(false);
       expect(result.errors.some((e) => e.includes("NIEISTNIEJE"))).toBe(true);
@@ -151,10 +166,18 @@ describe("referenceBackupService", () => {
 
     it("odrzuca sortujacego bez pola name", () => {
       const backup = JSON.parse(validBackupJson());
-      backup.sorters.push({ active: true });
+      backup.sorters.push({ id: 2, active: true });
       const result = validateBackup(JSON.stringify(backup));
       expect(result.valid).toBe(false);
       expect(result.errors.some((e) => e.includes("brak name"))).toBe(true);
+    });
+
+    it("odrzuca sortujacego bez pola id", () => {
+      const backup = JSON.parse(validBackupJson());
+      backup.sorters.push({ name: "Ktos", active: true });
+      const result = validateBackup(JSON.stringify(backup));
+      expect(result.valid).toBe(false);
+      expect(result.errors.some((e) => e.includes("brak id"))).toBe(true);
     });
 
     it("odrzuca zdeformowany wpis w sorterRoutes (nie-obiekt)", () => {

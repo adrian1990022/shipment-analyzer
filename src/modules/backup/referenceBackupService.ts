@@ -23,8 +23,8 @@ export async function buildBackup(createdBy: string): Promise<ReferenceBackup> {
     createdAt: new Date().toISOString(),
     createdBy,
     routes: routes.map((r) => ({ chuteId: r.chuteId, trasa: r.trasa, grupa: r.grupa })),
-    sorters: sorters.map((s) => ({ name: s.name, active: s.active })),
-    sorterRoutes: sorters.flatMap((s) => s.routes.map((route) => ({ sorterName: s.name, route }))),
+    sorters: sorters.map((s) => ({ id: s.id, name: s.name, active: s.active })),
+    sorterRoutes: sorters.flatMap((s) => s.routes.map((route) => ({ sorterId: s.id, route }))),
   };
 }
 
@@ -48,7 +48,7 @@ export interface BackupValidationResult {
 }
 
 // Sprawdza: poprawnosc JSON, wersje schematu, kompletnosc pol i typow,
-// oraz spojnosc referencji (kazdy sorterRoutes[].sorterName istnieje w
+// oraz spojnosc referencji (kazdy sorterRoutes[].sorterId istnieje w
 // sorters, kazdy sorterRoutes[].route istnieje w routes) -- zanim
 // cokolwiek trafi do importBackup.
 export function validateBackup(raw: string): BackupValidationResult {
@@ -97,18 +97,19 @@ export function validateBackup(raw: string): BackupValidationResult {
     }
   });
 
-  const sorterNames = new Set<string>();
+  const sorterIds = new Set<number>();
   sorters.forEach((entry, i) => {
     if (typeof entry !== "object" || entry === null) {
       errors.push(`sorters[${i}]: nieprawidłowy wpis.`);
       return;
     }
     const row = entry as Record<string, unknown>;
-    if (typeof row.name !== "string" || !row.name) {
-      errors.push(`sorters[${i}]: brak name.`);
+    if (typeof row.id !== "number") {
+      errors.push(`sorters[${i}]: brak id.`);
     } else {
-      sorterNames.add(row.name);
+      sorterIds.add(row.id);
     }
+    if (typeof row.name !== "string" || !row.name) errors.push(`sorters[${i}]: brak name.`);
     if (typeof row.active !== "boolean") errors.push(`sorters[${i}]: active musi być true/false.`);
   });
 
@@ -123,8 +124,8 @@ export function validateBackup(raw: string): BackupValidationResult {
       return;
     }
     const row = entry as Record<string, unknown>;
-    if (typeof row.sorterName !== "string" || !sorterNames.has(row.sorterName)) {
-      errors.push(`sorterRoutes[${i}]: sortujący "${String(row.sorterName)}" nie istnieje w liście sorters.`);
+    if (typeof row.sorterId !== "number" || !sorterIds.has(row.sorterId)) {
+      errors.push(`sorterRoutes[${i}]: sortujący o id ${JSON.stringify(row.sorterId)} nie istnieje w liście sorters.`);
     }
     if (typeof row.route !== "string" || !routeTrasy.has(row.route)) {
       errors.push(`sorterRoutes[${i}]: trasa "${String(row.route)}" nie istnieje w liście routes.`);

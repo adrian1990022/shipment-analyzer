@@ -5,15 +5,19 @@ export interface RouteBackupEntry {
 }
 
 export interface SorterBackupEntry {
+  id: number;
   name: string;
   active: boolean;
 }
 
-// Referencjonuje sortujacego po nazwie, nie po id -- ID sa nadawane od
-// nowa przy kazdym imporcie (kolumny identity), wiec numeryczne ID z
-// eksportu i tak nic by nie znaczyly przy imporcie do tej samej lub innej bazy.
+// Referencjonuje sortujacego po id Z CHWILI EKSPORTU (nie po nazwie --
+// dwoch roznych sortujacych moze miec to samo imie, np. w realnych danych
+// sa dwaj "Piotrek" i dwaj "Dima", wiec nazwa nie jest unikalna). Import
+// nadaje nowe ID (kolumny identity) i mapuje "id z eksportu" -> "nowe id"
+// wewnatrz jednej transakcji SQL, wiec numeryczne id ponizej jest tylko
+// kluczem wewnetrznym pliku, nigdy nie trafia bezposrednio do bazy.
 export interface SorterRouteBackupEntry {
-  sorterName: string;
+  sorterId: number;
   route: string;
 }
 

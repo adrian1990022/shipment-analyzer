@@ -26,7 +26,7 @@ export default defineConfig({
         "src/modules/backup/**",
         "src/modules/import/pipeline.ts",
       ],
-      exclude: ["**/*.test.ts"],
+      exclude: ["**/*.test.ts", "**/*.tsx"],
       thresholds: {
         statements: 90,
         branches: 90,

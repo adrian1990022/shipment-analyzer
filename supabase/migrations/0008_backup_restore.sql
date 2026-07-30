@@ -21,7 +21,10 @@ declare
   sorter jsonb;
   sr jsonb;
   new_sorter_id bigint;
-  sorter_id_by_name jsonb := '{}'::jsonb;
+  -- Klucz to id sortujacego Z CHWILI EKSPORTU, nie nazwa -- w realnych
+  -- danych imiona nie sa unikalne (np. dwoch "Piotrek", dwoch "Dima"),
+  -- wiec mapowanie po nazwie laczyloby przypisania roznych osob.
+  sorter_id_by_old_id jsonb := '{}'::jsonb;
 begin
   -- "where id >= 0" jest wymagane -- ochrona przed przypadkowym DELETE
   -- bez WHERE odrzuca nawet "where true" (nie referencjonuje zadnej
@@ -43,18 +46,18 @@ begin
     insert into public.sorters (name, active)
     values (sorter->>'name', (sorter->>'active')::boolean)
     returning id into new_sorter_id;
-    sorter_id_by_name := jsonb_set(sorter_id_by_name, array[sorter->>'name'], to_jsonb(new_sorter_id));
+    sorter_id_by_old_id := jsonb_set(sorter_id_by_old_id, array[sorter->>'id'], to_jsonb(new_sorter_id));
   end loop;
 
   for sr in select * from jsonb_array_elements(payload->'sorterRoutes')
   loop
     insert into public.sorter_routes (sorter_id, route)
-    values ((sorter_id_by_name->>(sr->>'sorterName'))::bigint, sr->>'route');
+    values ((sorter_id_by_old_id->>(sr->>'sorterId'))::bigint, sr->>'route');
   end loop;
 end;
 $$;
 
 comment on function public.replace_reference_data(jsonb) is
-  'Odtwarza routes/sorters/sorter_routes z backupu JSON w jednej transakcji (uzywane przez ReferenceBackupService). sorterRoutes referencjonuje sortujacych po nazwie (sorterName), bo ID sa nadawane od nowa przy kazdym imporcie.';
+  'Odtwarza routes/sorters/sorter_routes z backupu JSON w jednej transakcji (uzywane przez ReferenceBackupService). sorterRoutes referencjonuje sortujacych po id z chwili eksportu (sorterId), nie po nazwie -- nazwy nie sa unikalne (w realnych danych sa np. dwaj "Piotrek").';
 
 grant execute on function public.replace_reference_data(jsonb) to authenticated;
