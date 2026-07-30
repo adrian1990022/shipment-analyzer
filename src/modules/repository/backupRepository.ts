@@ -1,4 +1,5 @@
 import { supabase } from "../../lib/supabaseClient";
+import { reportError } from "../monitoring/reportError";
 import type { ReferenceBackup } from "../../types/backup";
 
 // Jedyny plik, ktory wola RPC replace_reference_data (patrz migracja
@@ -8,5 +9,8 @@ import type { ReferenceBackup } from "../../types/backup";
 // przeciwienstwie do sekwencji osobnych .from() z przegladarki).
 export async function replaceReferenceData(backup: ReferenceBackup): Promise<void> {
   const { error } = await supabase.rpc("replace_reference_data", { payload: backup });
-  if (error) throw error;
+  if (error) {
+    reportError(error, { module: "backupRepository", stage: "replaceReferenceData" });
+    throw error;
+  }
 }

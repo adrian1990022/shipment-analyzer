@@ -1,4 +1,5 @@
 import { supabase } from "../../lib/supabaseClient";
+import { reportError } from "../monitoring/reportError";
 import type { Profile } from "../../types/auth";
 
 interface ProfileRow {
@@ -25,7 +26,10 @@ export async function fetchOwnProfile(userId: string): Promise<Profile | null> {
     .select("id, username, role, created_at, updated_at")
     .eq("id", userId)
     .maybeSingle();
-  if (error) throw error;
+  if (error) {
+    reportError(error, { module: "profileRepository", stage: "fetchOwnProfile" });
+    throw error;
+  }
   return data ? fromRow(data as ProfileRow) : null;
 }
 
@@ -37,6 +41,9 @@ export async function fetchAllProfiles(): Promise<Profile[]> {
     .from("profiles")
     .select("id, username, role, created_at, updated_at")
     .order("username");
-  if (error) throw error;
+  if (error) {
+    reportError(error, { module: "profileRepository", stage: "fetchAllProfiles" });
+    throw error;
+  }
   return (data ?? []).map((row) => fromRow(row as ProfileRow));
 }

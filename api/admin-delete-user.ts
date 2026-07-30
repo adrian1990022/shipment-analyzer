@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { AdminAuthError, requireAdmin } from "../api-lib/adminAuth.js";
+import { reportError } from "../api-lib/sentry.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
@@ -24,6 +25,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // znika sam, bez osobnego zapytania.
     const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
     if (error) {
+      reportError(error, { module: "api/admin-delete-user", stage: "auth.admin.deleteUser" });
       res.status(400).json({ error: "Nie udalo sie usunac uzytkownika." });
       return;
     }
@@ -34,6 +36,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       res.status(err.status).json({ error: err.message });
       return;
     }
+    reportError(err, { module: "api/admin-delete-user", stage: "handler" });
     res.status(500).json({ error: "Blad serwera." });
   }
 }

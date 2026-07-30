@@ -1,8 +1,23 @@
+import { execSync } from "node:child_process";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 
+// Release Sentry = krotki SHA commita builda -- grupuje zdarzenia
+// per-deploy bez potrzeby Sentry CLI/auth tokena. "unknown" poza repo
+// gita (np. niektore srodowiska CI) zamiast wywalania builda.
+function gitShortSha(): string {
+  try {
+    return execSync("git rev-parse --short HEAD").toString().trim();
+  } catch {
+    return "unknown";
+  }
+}
+
 export default defineConfig({
+  define: {
+    __APP_RELEASE__: JSON.stringify(gitShortSha()),
+  },
   plugins: [
     react(),
     VitePWA({

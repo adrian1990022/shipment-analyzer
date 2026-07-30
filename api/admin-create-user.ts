@@ -6,6 +6,7 @@ import {
   requireAdmin,
   synthesizeEmail,
 } from "../api-lib/adminAuth.js";
+import { reportError } from "../api-lib/sentry.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
@@ -36,7 +37,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
     if (createError || !created.user) {
-      console.error("admin-create-user: createUser failed", createError);
+      reportError(createError, { module: "api/admin-create-user", stage: "auth.admin.createUser" });
       res.status(400).json({ error: "Nie udalo sie utworzyc uzytkownika. Login moze byc juz zajety." });
       return;
     }
@@ -50,7 +51,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
     if (profileError) {
-      console.error("admin-create-user: profile insert failed", profileError);
+      reportError(profileError, { module: "api/admin-create-user", stage: "profiles.insert" });
       // Bez profilu konto Auth byloby sierotą (uzytkownik istnieje, ale
       // apka nie wie jaka ma role) -- wycofaj utworzone konto.
       await supabaseAdmin.auth.admin.deleteUser(created.user.id);
@@ -64,7 +65,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       res.status(err.status).json({ error: err.message });
       return;
     }
-    console.error("admin-create-user: unexpected error", err);
+    reportError(err, { module: "api/admin-create-user", stage: "handler" });
     res.status(500).json({ error: "Blad serwera." });
   }
 }

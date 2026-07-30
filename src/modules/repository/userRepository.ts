@@ -1,4 +1,5 @@
 import { getSession } from "../auth/authService";
+import { reportError } from "../monitoring/reportError";
 
 // Operacje administracyjne na kontach (tworzenie, zmiana hasla,
 // usuwanie) wymagaja klucza service_role, ktorego apka kliencka nigdy
@@ -12,14 +13,24 @@ async function callAdminEndpoint(path: string, body: unknown): Promise<void> {
   const session = await getSession();
   if (!session) throw new UserRepositoryError("Brak aktywnej sesji.");
 
-  const response = await fetch(path, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${session.access_token}`,
-    },
-    body: JSON.stringify(body),
-  });
+  let response: Response;
+  try {
+    response = await fetch(path, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify(body),
+    });
+  } catch (err) {
+    // Blad komunikacji (offline, DNS, CORS) -- request nigdy nie dotarl do
+    // serwera, wiec api/admin-*.ts nie mial szansy zaraportowac tego sam.
+    // Zwykle bledy walidacji (400) NIE sa tu raportowane -- to oczekiwane
+    // wyniki (np. "login zajety"), nie incydenty.
+    reportError(err, { module: "userRepository", stage: path });
+    throw new UserRepositoryError("Nie udało się połączyć z serwerem.");
+  }
 
   if (!response.ok) {
     const payload = await response.json().catch(() => null);

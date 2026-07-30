@@ -1,4 +1,5 @@
 import { supabase } from "../../lib/supabaseClient";
+import { reportError } from "../monitoring/reportError";
 import type { RouteRef } from "../../types/shipment";
 
 interface RouteRow {
@@ -27,7 +28,10 @@ export async function fetchRoutes(): Promise<RouteRef[]> {
     .select("id, chute_id, trasa, grupa, created_at, updated_at")
     .order("chute_id", { ascending: true });
 
-  if (error) throw error;
+  if (error) {
+    reportError(error, { module: "routesRepository", stage: "fetchRoutes" });
+    throw error;
+  }
   return (data ?? []).map((row) => fromRow(row as RouteRow));
 }
 
@@ -44,10 +48,16 @@ export async function upsertRoute(input: {
     },
     { onConflict: "chute_id" }
   );
-  if (error) throw error;
+  if (error) {
+    reportError(error, { module: "routesRepository", stage: "upsertRoute" });
+    throw error;
+  }
 }
 
 export async function deleteRoute(id: number): Promise<void> {
   const { error } = await supabase.from("routes").delete().eq("id", id);
-  if (error) throw error;
+  if (error) {
+    reportError(error, { module: "routesRepository", stage: "deleteRoute" });
+    throw error;
+  }
 }

@@ -16,6 +16,7 @@ import { AuthProvider, useAuth } from "./modules/auth/AuthProvider";
 import { LoginScreen } from "./modules/auth/LoginScreen";
 import { AdminRoute } from "./modules/auth/AdminRoute";
 import { useNavigation } from "./navigation/useNavigation";
+import { ErrorBoundary } from "./modules/monitoring/ErrorBoundary";
 
 type View =
   | { screen: "dashboard" }
@@ -33,9 +34,11 @@ const HOME: View = { screen: "dashboard" };
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AppShell />
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <AppShell />
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 

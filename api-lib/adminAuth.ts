@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { reportError } from "./sentry.js";
 
 // Ten plik NIE jest w katalogu api/, wiec Vercel go nie routuje jako
 // osobny endpoint -- to wspolna biblioteka dla api/admin-*.ts.
@@ -19,8 +20,9 @@ export class AdminAuthError extends Error {
 function requiredEnv(name: string): string {
   const value = process.env[name];
   if (!value) {
-    console.error(`adminAuth: brak zmiennej srodowiskowej ${name}`);
-    throw new Error(`Brak zmiennej srodowiskowej ${name}`);
+    const error = new Error(`Brak zmiennej srodowiskowej ${name}`);
+    reportError(error, { module: "api-lib/adminAuth", stage: "requiredEnv" });
+    throw error;
   }
   return value;
 }

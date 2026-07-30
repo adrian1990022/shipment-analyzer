@@ -1,4 +1,5 @@
 import { supabase } from "../../lib/supabaseClient";
+import { reportError } from "../monitoring/reportError";
 import type { Grupa, ImportSummary, Shipment } from "../../types/shipment";
 
 interface ShipmentRow {
@@ -77,7 +78,10 @@ export async function fetchShipments(): Promise<Shipment[]> {
       "shipment_id, remarks, hwx, last_phy_cp, last_phy_cp_dt, weight_dimension, shp_calc_wgt, shp_tot_pcs, consignee_name, chute_id, receiver_name, rcvr_addr1, rcvr_postcode, rcvr_city, trasa, grupa, sortujacy, wystapilo, import_id, id"
     );
 
-  if (error) throw error;
+  if (error) {
+    reportError(error, { module: "shipmentsRepository", stage: "fetchShipments" });
+    throw error;
+  }
   return (data ?? []).map((row) => fromRow(row as ShipmentRow & { id: number }));
 }
 
@@ -103,12 +107,18 @@ export async function replaceShipments(
     .select("id")
     .single();
 
-  if (importError) throw importError;
+  if (importError) {
+    reportError(importError, { module: "shipmentsRepository", stage: "replaceShipments:imports.insert" });
+    throw importError;
+  }
   const importId = (importRow as { id: number }).id;
 
   // Usun poprzednie dane -- "id >= 0" dopasowuje kazdy wiersz (bigint identity).
   const { error: deleteError } = await supabase.from("shipments").delete().gte("id", 0);
-  if (deleteError) throw deleteError;
+  if (deleteError) {
+    reportError(deleteError, { module: "shipmentsRepository", stage: "replaceShipments:delete" });
+    throw deleteError;
+  }
 
   if (shipments.length === 0) return;
 
@@ -119,6 +129,9 @@ export async function replaceShipments(
   for (let i = 0; i < rows.length; i += chunkSize) {
     const chunk = rows.slice(i, i + chunkSize);
     const { error: insertError } = await supabase.from("shipments").insert(chunk);
-    if (insertError) throw insertError;
+    if (insertError) {
+      reportError(insertError, { module: "shipmentsRepository", stage: "replaceShipments:insert" });
+      throw insertError;
+    }
   }
 }

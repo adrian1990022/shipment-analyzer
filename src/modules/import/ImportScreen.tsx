@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { runImportPipeline, PipelineError } from "./pipeline";
 import { replaceShipments } from "../repository/shipmentsRepository";
+import { reportError } from "../monitoring/reportError";
 import type { ImportResult } from "../../types/shipment";
 
 type Stage =
@@ -32,6 +33,12 @@ export function ImportScreen({ onSaved }: { onSaved: () => void }) {
       const result = await runImportPipeline(fileA, fileB);
       setStage({ kind: "reviewing", result });
     } catch (err) {
+      // PipelineError = oczekiwana walidacja (zly plik, nierozpoznane
+      // naglowki) pokazywana uzytkownikowi -- nie incydent. Wszystko inne
+      // to prawdziwie nieoczekiwany blad w parsowaniu/pipeline.
+      if (!(err instanceof PipelineError)) {
+        reportError(err, { module: "import", stage: "pipeline" });
+      }
       const message = err instanceof PipelineError ? err.message : "Nie udalo sie przeanalizowac plikow.";
       setStage({ kind: "picking", error: message });
     }

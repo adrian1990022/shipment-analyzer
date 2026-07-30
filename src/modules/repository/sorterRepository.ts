@@ -1,4 +1,5 @@
 import { supabase } from "../../lib/supabaseClient";
+import { reportError } from "../monitoring/reportError";
 import type { Sorter, SorterWithRoutes } from "../../types/sorter";
 
 interface SorterRow {
@@ -25,8 +26,14 @@ export async function fetchSorters(): Promise<SorterWithRoutes[]> {
     supabase.from("sorters").select("id, name, active, created_at, updated_at").order("name"),
     supabase.from("sorter_routes").select("sorter_id, route"),
   ]);
-  if (sortersRes.error) throw sortersRes.error;
-  if (routesRes.error) throw routesRes.error;
+  if (sortersRes.error) {
+    reportError(sortersRes.error, { module: "sorterRepository", stage: "fetchSorters:sorters" });
+    throw sortersRes.error;
+  }
+  if (routesRes.error) {
+    reportError(routesRes.error, { module: "sorterRepository", stage: "fetchSorters:sorter_routes" });
+    throw routesRes.error;
+  }
 
   const routesBySorterId = new Map<number, string[]>();
   for (const row of routesRes.data ?? []) {
@@ -59,7 +66,10 @@ export async function fetchSorterNameByTrasa(): Promise<Map<string, string>> {
   const { data, error } = await supabase
     .from("sorter_routes")
     .select("route, sorters(name)");
-  if (error) throw error;
+  if (error) {
+    reportError(error, { module: "sorterRepository", stage: "fetchSorterNameByTrasa" });
+    throw error;
+  }
 
   // supabase-js typuje relacje "do jednego" bez wygenerowanych typow bazy
   // jako tablice, mimo ze w runtime PostgREST zwraca tu pojedynczy obiekt
@@ -91,8 +101,17 @@ export async function fetchRouteAssignmentStatus(): Promise<RouteAssignmentStatu
     supabase.from("routes").select("trasa"),
     supabase.from("sorter_routes").select("route, sorter_id"),
   ]);
-  if (routesRes.error) throw routesRes.error;
-  if (assignedRes.error) throw assignedRes.error;
+  if (routesRes.error) {
+    reportError(routesRes.error, { module: "sorterRepository", stage: "fetchRouteAssignmentStatus:routes" });
+    throw routesRes.error;
+  }
+  if (assignedRes.error) {
+    reportError(assignedRes.error, {
+      module: "sorterRepository",
+      stage: "fetchRouteAssignmentStatus:sorter_routes",
+    });
+    throw assignedRes.error;
+  }
 
   const assignedBySorter = new Map<string, number>();
   for (const row of assignedRes.data ?? []) {
@@ -114,7 +133,10 @@ export async function createSorter(input: { name: string; routes: string[] }): P
     .insert({ name: input.name })
     .select("id")
     .single();
-  if (error) throw error;
+  if (error) {
+    reportError(error, { module: "sorterRepository", stage: "createSorter" });
+    throw error;
+  }
 
   const sorterId = (data as { id: number }).id;
   await replaceSorterRoutes(sorterId, input.routes);
@@ -122,12 +144,18 @@ export async function createSorter(input: { name: string; routes: string[] }): P
 
 export async function updateSorterName(id: number, name: string): Promise<void> {
   const { error } = await supabase.from("sorters").update({ name }).eq("id", id);
-  if (error) throw error;
+  if (error) {
+    reportError(error, { module: "sorterRepository", stage: "updateSorterName" });
+    throw error;
+  }
 }
 
 export async function setSorterActive(id: number, active: boolean): Promise<void> {
   const { error } = await supabase.from("sorters").update({ active }).eq("id", id);
-  if (error) throw error;
+  if (error) {
+    reportError(error, { module: "sorterRepository", stage: "setSorterActive" });
+    throw error;
+  }
 }
 
 // Nadpisuje CALY zestaw tras danego sortujacego: usun jego stare wiersze,
@@ -138,7 +166,10 @@ export async function setSorterActive(id: number, active: boolean): Promise<void
 // selektorze SorterForm.
 export async function replaceSorterRoutes(sorterId: number, routes: string[]): Promise<void> {
   const { error: deleteError } = await supabase.from("sorter_routes").delete().eq("sorter_id", sorterId);
-  if (deleteError) throw deleteError;
+  if (deleteError) {
+    reportError(deleteError, { module: "sorterRepository", stage: "replaceSorterRoutes:delete" });
+    throw deleteError;
+  }
 
   if (routes.length === 0) return;
 
@@ -148,11 +179,17 @@ export async function replaceSorterRoutes(sorterId: number, routes: string[]): P
       routes.map((route) => ({ sorter_id: sorterId, route })),
       { onConflict: "route" }
     );
-  if (upsertError) throw upsertError;
+  if (upsertError) {
+    reportError(upsertError, { module: "sorterRepository", stage: "replaceSorterRoutes:upsert" });
+    throw upsertError;
+  }
 }
 
 export async function deleteSorter(id: number): Promise<void> {
   // sorter_routes ma "on delete cascade" na sorter_id -- usuwaja sie same.
   const { error } = await supabase.from("sorters").delete().eq("id", id);
-  if (error) throw error;
+  if (error) {
+    reportError(error, { module: "sorterRepository", stage: "deleteSorter" });
+    throw error;
+  }
 }
