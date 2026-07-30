@@ -20,13 +20,28 @@ stanu aplikacji. Każdy wpis tutaj odpowiada jednemu commitowi w gita
   Postgresa.
 - Format: `{ appVersion, schemaVersion, createdAt, createdBy, routes,
   sorters, sorterRoutes }` — `sorterRoutes` referencjonuje sortujących
-  po nazwie (`sorterName`), nie po id (ID są nadawane od nowa przy
-  każdym imporcie).
+  po **id z chwili eksportu** (`sorterId`), nie po nazwie. Import mapuje
+  "id z eksportu" → "nowe id" (kolumny identity nadają nowe ID przy
+  każdym imporcie) w ramach jednej transakcji SQL.
 - Nowe moduły: `ReferenceBackupService` (cała logika — eksport,
   walidacja, wersjonowanie; komponenty React nie znają formatu JSON) i
   `backupRepository` (jedyny plik wołający RPC).
-- 25 nowych testów (walidacja: brak pól, zła wersja schematu, zerwane
-  referencje, zdeformowane wpisy w tablicach).
+- 20 nowych testów (walidacja: brak pól, zła wersja schematu, zerwane
+  referencje, zdeformowane wpisy w tablicach, rozróżnianie sortujących
+  o tej samej nazwie po id).
+
+**Dwie poprawki znalezione podczas weryfikacji na prawdziwych danych
+produkcyjnych (przed wdrożeniem, żadne dane nie ucierpiały):**
+
+- Postgres odrzuca `DELETE` bez `WHERE` nawet gdy to trywialne `WHERE
+  true` (błąd `21000`) — migracja używa `WHERE id >= 0`, ten sam
+  sprawdzony wzorzec co w `shipmentsRepository.replaceShipments`.
+- Pierwsza wersja referencjonowała sortujących po nazwie (`sorterName`).
+  W realnych danych imiona **nie są unikalne** (dwaj sortujący o imieniu
+  "Piotrek", dwaj "Dima") — import po nazwie połączyłby przypisania
+  tras różnych osób w jedną. Naprawione przez referencjonowanie po
+  `sorterId` (patrz wyżej). Zweryfikowane round-tripem na prawdziwych
+  danych: obie pary zachowały osobne przypisania tras po imporcie.
 
 ## 2026-07-30 — Sprint Stabilizacyjny 1.0, część 1: testy jednostkowe
 
