@@ -5,6 +5,30 @@ stanu aplikacji. Każdy wpis tutaj odpowiada jednemu commitowi w gita
 (`git log` pokaże dokładny diff; `git checkout <hash> -- .` albo
 `git revert <hash>` pozwala się cofnąć do/po danej zmianie).
 
+## 2026-07-30 — Sprint Stabilizacyjny 1.0, część 2: monitoring błędów (Sentry)
+
+- `@sentry/react` (front-end) + `@sentry/node` (Vercel Serverless
+  Functions), jedna zmienna `VITE_SENTRY_DSN` dla obu środowisk.
+  Opcjonalna — brak DSN wyłącza monitoring, aplikacja działa normalnie.
+- Jeden punkt wejścia: `src/lib/sentry.ts` (init) i
+  `modules/monitoring/reportError.ts` (jedyna funkcja, przez którą
+  reszta kodu zgłasza błędy — nikt inny nie woła `Sentry.*`
+  bezpośrednio), analogicznie `api-lib/sentry.ts` dla `api/*.ts`.
+- Globalny Error Boundary (`modules/monitoring/ErrorBoundary.tsx`)
+  owija `AppShell` — czytelny komunikat PL, bez stack trace.
+- `reportError` wpięty w: wszystkie `repository/*.ts` (błędy komunikacji
+  z Supabase), `api/admin-*.ts` + `api-lib/adminAuth.ts` (błędy
+  serwerowe), `ImportScreen` (nieoczekiwane błędy parsera/pipeline —
+  `PipelineError`, czyli oczekiwana walidacja pokazywana użytkownikowi,
+  świadomie NIE jest raportowana), `userRepository` (tylko awarie
+  sieciowe do endpointów admina, nie zwykłe 400).
+- Brak PII projektowo — `reportError` dostaje wyłącznie `{module, stage}`,
+  nigdy surowych obiektów `Shipment`/`Profile`/`User`. `beforeSend` w
+  `lib/sentry.ts` jako dodatkowa obrona (usuwa cookies/`Authorization`/
+  podejrzane klucze `extra.*`).
+- Release = krótki SHA gita wstrzykiwany przez `vite.config.ts`
+  (`define`) — grupuje zdarzenia per-deploy bez Sentry CLI/auth tokena.
+
 ## 2026-07-30 — Sprint Stabilizacyjny 1.0, część 3: backup/restore danych referencyjnych
 
 - Nowa sekcja "Kopia zapasowa" na dole ekranu **Dane referencyjne**:
