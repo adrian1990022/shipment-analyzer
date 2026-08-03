@@ -263,6 +263,10 @@ button.secondary {
   align-items: center;
   gap: 8px;
   box-shadow: var(--shadow-sm);
+  /* .tile jest <button> -- bez tego dziedziczylby bialy "color" z
+     globalnej reguly button{} (przeznaczonej dla niebieskich przyciskow
+     akcji), niewidoczny na jasnej karcie. */
+  color: var(--text);
 }
 
 .tile:hover {
@@ -272,6 +276,7 @@ button.secondary {
 .tile-title {
   font-size: 18px;
   font-weight: 700;
+  color: var(--text);
 }
 
 .tile-count {
