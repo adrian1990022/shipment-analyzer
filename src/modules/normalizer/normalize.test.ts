@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  formatTimeHHmm,
   isSameLocalDay,
   naturalCompare,
   normalizeJoinKey,
   parseFlexibleDate,
   parseNumber,
+  toLocalDateKey,
 } from "./normalize";
 
 describe("normalizeJoinKey", () => {
@@ -87,6 +89,46 @@ describe("isSameLocalDay", () => {
     expect(isSameLocalDay(new Date(2026, 6, 22), new Date(2026, 6, 21))).toBe(false);
     expect(isSameLocalDay(new Date(2026, 6, 22), new Date(2026, 5, 22))).toBe(false);
     expect(isSameLocalDay(new Date(2026, 6, 22), new Date(2025, 6, 22))).toBe(false);
+  });
+});
+
+describe("formatTimeHHmm", () => {
+  it("zwraca — dla null", () => {
+    expect(formatTimeHHmm(null)).toBe("—");
+  });
+
+  it("zwraca — dla niepoprawnego stringa", () => {
+    expect(formatTimeHHmm("nie-data")).toBe("—");
+  });
+
+  it("formatuje HH:mm w czasie lokalnym (round-trip lokalny -> UTC -> lokalny, niezalezny od strefy testu)", () => {
+    const iso = new Date(2026, 6, 23, 7, 30, 56).toISOString();
+    expect(formatTimeHHmm(iso)).toBe("07:30");
+  });
+
+  it("dopelnia zerami godziny/minuty ponizej 10", () => {
+    const iso = new Date(2026, 6, 23, 9, 5, 0).toISOString();
+    expect(formatTimeHHmm(iso)).toBe("09:05");
+  });
+});
+
+describe("toLocalDateKey", () => {
+  it("zwraca null dla null", () => {
+    expect(toLocalDateKey(null)).toBeNull();
+  });
+
+  it("zwraca null dla niepoprawnego stringa", () => {
+    expect(toLocalDateKey("nie-data")).toBeNull();
+  });
+
+  it("formatuje YYYY-MM-DD w czasie lokalnym", () => {
+    const iso = new Date(2026, 6, 23, 7, 30, 56).toISOString();
+    expect(toLocalDateKey(iso)).toBe("2026-07-23");
+  });
+
+  it("dopelnia zerami miesiac/dzien ponizej 10", () => {
+    const iso = new Date(2026, 0, 5, 12, 0, 0).toISOString();
+    expect(toLocalDateKey(iso)).toBe("2026-01-05");
   });
 });
 

@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Grupa, Shipment } from "./types/shipment";
 import { fetchShipments } from "./modules/repository/shipmentsRepository";
+import {
+  buildHandledKey,
+  fetchHandledMap,
+  setHandled,
+} from "./modules/repository/shipmentActionRepository";
+import { toLocalDateKey } from "./modules/normalizer/normalize";
 import { Dashboard } from "./modules/dashboard/Dashboard";
 import { GroupView } from "./modules/dashboard/GroupView";
 import { TrasaListView } from "./modules/dashboard/TrasaListView";
@@ -17,6 +23,7 @@ import { LoginScreen } from "./modules/auth/LoginScreen";
 import { AdminRoute } from "./modules/auth/AdminRoute";
 import { useNavigation } from "./navigation/useNavigation";
 import { ErrorBoundary } from "./modules/monitoring/ErrorBoundary";
+import { reportError } from "./modules/monitoring/reportError";
 
 type View =
   | { screen: "dashboard" }
@@ -48,6 +55,7 @@ function AppShell() {
   const view = nav.current;
   const [shipments, setShipments] = useState<Shipment[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [handledMap, setHandledMap] = useState<Map<string, boolean>>(new Map());
 
   const reload = useCallback(async () => {
     try {
@@ -56,7 +64,31 @@ function AppShell() {
     } catch {
       setLoadError("Nie udalo sie wczytac danych z Supabase.");
     }
+    // Osobny try/catch -- awaria pobrania stanu "obsluzono" nie moze
+    // zablokowac Dashboardu, to dodatek nad wynikiem, nie jego zrodlo.
+    try {
+      setHandledMap(await fetchHandledMap());
+    } catch (err) {
+      reportError(err, { module: "AppShell", stage: "fetchHandledMap" });
+    }
   }, []);
+
+  // Optymistyczny zapis: UI reaguje natychmiast, blad zapisu cofa zmiane
+  // lokalnie (Sprint UX 1.1 -- "Obsluzono" to informacja operacyjna, nie
+  // czesc pipeline'u/shipments).
+  async function handleToggleHandled(shipment: Shipment) {
+    const shipmentDate = toLocalDateKey(shipment.lastPhyCpDt);
+    if (!shipmentDate) return;
+    const key = buildHandledKey(shipment.shipmentId, shipmentDate);
+    const next = !(handledMap.get(key) ?? false);
+    setHandledMap((prev) => new Map(prev).set(key, next));
+    try {
+      await setHandled(shipment.shipmentId, shipmentDate, next);
+    } catch (err) {
+      reportError(err, { module: "AppShell", stage: "setHandled" });
+      setHandledMap((prev) => new Map(prev).set(key, !next));
+    }
+  }
 
   // Laduje dane dopiero po zalogowaniu i czysci je po wylogowaniu --
   // inaczej w tej samej karcie po zmianie konta widac by bylo dane
@@ -183,6 +215,8 @@ function AppShell() {
             shipments={shipments}
             grupa={view.grupa}
             sortujacy={view.sortujacy}
+            handledMap={handledMap}
+            onToggleHandled={handleToggleHandled}
             onBack={nav.goBack}
           />
         ))}
@@ -193,6 +227,8 @@ function AppShell() {
           grupa={view.grupa}
           sortujacy={view.sortujacy}
           trasa={view.trasa}
+          handledMap={handledMap}
+          onToggleHandled={handleToggleHandled}
           onBack={nav.goBack}
         />
       )}

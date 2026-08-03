@@ -67,6 +67,30 @@ export function isSameLocalDay(a: Date, b: Date): boolean {
   );
 }
 
+// "lastPhyCpDt" jest budowane (mapRoutes.ts) jako
+// parseFlexibleDate(...).toISOString() -- lokalne skladowe czasu
+// zserializowane do UTC. Odczyt lokalnymi getterami (nie UTC) odwraca to
+// bezstratnie w tej samej przegladarce/sesji -- ten sam mechanizm co
+// isSameLocalDay powyzej. Zero sekund/strefy czasowej w wyniku (Sprint UX 1.1).
+export function formatTimeHHmm(iso: string | null): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
+// Jak formatTimeHHmm, ale zwraca date-only klucz (YYYY-MM-DD) w lokalnym
+// czasie -- uzywane jako "shipment_date" przy zapisie/odczycie
+// shipment_actions (Sprint UX 1.1).
+export function toLocalDateKey(iso: string | null): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${mm}-${dd}`;
+}
+
 // Zwykle localeCompare sortuje "Sortujący 10" przed "Sortujący 2" (porownanie
 // znak po znaku). Intl.Collator z numeric:true rozpoznaje liczby wewnatrz
 // tekstu i porownuje je jako liczby -- dziala tak samo dobrze dla samych

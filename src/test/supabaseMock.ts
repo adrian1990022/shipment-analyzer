@@ -22,6 +22,7 @@ export function createQueryBuilderMock(result: MockResult) {
     upsert: vi.fn(() => builder),
     delete: vi.fn(() => builder),
     eq: vi.fn(() => builder),
+    neq: vi.fn(() => builder),
     order: vi.fn(() => builder),
     gte: vi.fn(() => builder),
     single: vi.fn(() => resolved),

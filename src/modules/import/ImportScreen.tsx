@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { runImportPipeline, PipelineError } from "./pipeline";
 import { replaceShipments } from "../repository/shipmentsRepository";
+import { pruneShipmentActions } from "../repository/shipmentActionRepository";
+import { toLocalDateKey } from "../normalizer/normalize";
 import { reportError } from "../monitoring/reportError";
 import type { ImportResult } from "../../types/shipment";
 
@@ -48,11 +50,21 @@ export function ImportScreen({ onSaved }: { onSaved: () => void }) {
     setStage({ kind: "saving", result });
     try {
       await replaceShipments(result.shipments, result.summary);
-      setStage({ kind: "saved" });
-      onSaved();
     } catch {
       setStage({ kind: "reviewing", result });
+      return;
     }
+    try {
+      // Best-effort: usuwa shipment_actions sprzed dzisiejszego dnia.
+      // Blad NIE moze zamaskowac udanego zapisu shipments jako porazki --
+      // reportError juz odpalony wewnatrz pruneShipmentActions, najgorszy
+      // scenariusz to kilka nieaktualnych wierszy do nastepnego pruningu.
+      await pruneShipmentActions(toLocalDateKey(new Date().toISOString())!);
+    } catch {
+      // celowo brak dalszej obslugi -- patrz komentarz wyzej
+    }
+    setStage({ kind: "saved" });
+    onSaved();
   }
 
   function handleReject() {

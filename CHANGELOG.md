@@ -5,6 +5,49 @@ stanu aplikacji. Każdy wpis tutaj odpowiada jednemu commitowi w gita
 (`git log` pokaże dokładny diff; `git checkout <hash> -- .` albo
 `git revert <hash>` pozwala się cofnąć do/po danej zmianie).
 
+## 2026-07-31 — Sprint UX 1.1: czytelność i obsługa błędów
+
+Bez zmian w pipeline'ie biznesowym (Parser→Normalizer→Join→Date
+Filter→Deduplicate→Mapper→Analyzer→Repository) — same dodatki UI/
+operacyjne nad istniejącym wynikiem.
+
+- **Kolumna „Czas”** na ekranie tabeli błędów (przed „Remarks”) —
+  `HH:mm` wyliczane przy renderowaniu z `Last Phy Cp dt`
+  (`formatTimeHHmm` w `normalizer/normalize.ts`), bez zapisu nowej
+  kolumny w bazie. Puste/niepoprawne → `—`.
+- **Oznaczanie „Obsłużono”** — Switch na końcu każdego wiersza,
+  informacja "ktoś już się tym zajmuje" (NIE "rozwiązane"). Zapis
+  natychmiastowy (optymistyczny update + revert przy błędzie), wiersz
+  dostaje jasnozielone tło (`--handled-bg`, bez zmiany koloru tekstu,
+  bez animacji), stan przetrwa odświeżenie strony i ponowny import tego
+  samego dnia.
+  - Nowa tabela `shipment_actions` (migracja `0009_shipment_actions.sql`)
+    — celowo NIE w `shipments` (które jest nadpisywane w całości przy
+    każdym imporcie). Klucz złożony `(shipment_id, shipment_date)`.
+    RLS: admin pełny dostęp, zwykły zalogowany „user” (operator) może
+    czytać/tworzyć/aktualizować, ale nie usuwać — spójne z istniejącym
+    wzorcem `shipments_admin_all` + `shipments_user_select` z `0007`.
+  - Retencja: brak historii — `ImportScreen` po każdym udanym imporcie
+    wywołuje `pruneShipmentActions` (best-effort, błąd nie maskuje
+    udanego zapisu `shipments`), które usuwa wpisy z innym
+    `shipment_date` niż dzisiejszy. Pierwsze wywołanie danego dnia
+    realnie czyści, kolejne tego samego dnia są no-opem.
+  - Nowy moduł `ShipmentActionRepository` (jedyny plik wołający
+    Supabase dla tego stanu) + 13 nowych testów.
+- **Licznik „Obsłużono: X / Y przesyłek”** nad tabelą — liczony nad już
+  przefiltrowanym/posortowanym zestawem wierszy (respektuje aktywne
+  zawężenie grupy/sortera/trasy), zero dodatkowych zapytań (stan
+  `handled` pobierany raz na `reload()`, łączony w pamięci).
+- **Jasny motyw** — pełna podmiana palety (`src/styles.css`) na jasną,
+  zgodną z estetyką Microsoft 365/Stripe/Linear/Notion (tło `#F8FAFC`,
+  karty `#FFFFFF`, tekst `#1F2937`, akcent `#2563EB`). Wyższe wiersze
+  tabel, wyraźniejsze nagłówki, naprzemienne kolory wierszy, delikatny
+  hover. Sam układ aplikacji bez zmian — wyłącznie warstwa wizualna.
+- 8 nowych testów w `normalize.test.ts` (`formatTimeHHmm`,
+  `toLocalDateKey`) + 13 w `shipmentActionRepository.test.ts` — razem
+  175 testów w projekcie, progi pokrycia (90% global / 100%
+  `normalizer/**` i pozostałe already-100% katalogi) bez zmian.
+
 ## 2026-07-30 — Sprint Stabilizacyjny 1.0, część 2: monitoring błędów (Sentry)
 
 - `@sentry/react` (front-end) + `@sentry/node` (Vercel Serverless

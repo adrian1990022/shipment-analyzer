@@ -60,6 +60,9 @@ raportem pokrycia (patrz sekcja [Testy](#testy)).
 5. Uruchom `supabase/migrations/0008_backup_restore.sql` — dodaje
    funkcję `replace_reference_data`, potrzebną do importu kopii
    zapasowej (patrz [Backup / restore](#backup--restore-danych-referencyjnych)).
+6. Uruchom `supabase/migrations/0009_shipment_actions.sql` — dodaje
+   tabelę `shipment_actions`, potrzebną do oznaczania przesyłek jako
+   „Obsłużono” (patrz [Obsłużono](#obsłużono--stan-operacyjny-shipment_actions)).
 
 ### Dlaczego tak, a nie inaczej (żeby każdą decyzję dało się wyjaśnić)
 
@@ -92,6 +95,12 @@ raportem pokrycia (patrz sekcja [Testy](#testy)).
   (`using (true)`) — narzędzie nie ma na razie logowania (jeden
   użytkownik). Gdy pojawi się potrzeba wielu kont, zastąpić polityki
   wersjami opartymi o `auth.uid()`.
+- **`shipment_actions` (stan „Obsłużono”) ma osobne, szersze RLS niż
+  `shipments`** — admin pełny dostęp, ale zwykły zalogowany `user`
+  (operator na hali) też może czytać/tworzyć/aktualizować (nie tylko
+  czytać, jak przy `shipments`), bo to on na co dzień przełącza Switch.
+  Usuwanie zostaje tylko dla admina — `pruneShipmentActions` jest
+  wołane wyłącznie z `ImportScreen`, który i tak wymaga roli admina.
 
 ## Pipeline
 
@@ -233,6 +242,39 @@ w trakcie), stan bazy jest gwarantowany identyczny jak przed próbą —
 transakcja SQL gwarantuje brak częściowego zapisu. Możesz bezpiecznie
 spróbować ponownie.
 
+## Obsłużono — stan operacyjny `shipment_actions`
+
+Na ekranie tabeli błędów każdy wiersz ma przełącznik „Obsłużono” —
+informacja "ktoś już się tym zajmuje", **nie** "problem rozwiązany".
+Nad tabelą widać też licznik `Obsłużono: X / Y przesyłek`, liczony nad
+aktualnie widocznym (przefiltrowanym/posortowanym) zestawem wierszy.
+
+Stan **nie** jest zapisywany w tabeli `shipments` — ta jest nadpisywana
+w całości przy każdym imporcie (`replaceShipments`: delete-all +
+insert), więc przetrwanie stanu po reimporcie tego samego dnia
+wymagałoby dodatkowej logiki scalania. Zamiast tego osobna tabela
+`shipment_actions` (`id`, `shipment_id`, `shipment_date`, `handled`,
+`updated_at`, `unique(shipment_id, shipment_date)`), powiązana z
+`shipments` logicznie (po złożonym kluczu), nie kluczem obcym.
+
+**Odczyt/scalanie**: `ShipmentActionRepository.fetchHandledMap()` pobiera
+CAŁY stan jednym zapytaniem przy `reload()` (logowanie, po imporcie) —
+żadnych dodatkowych zapytań per wiersz tabeli. Wynik to `Map<string,
+boolean>` po kluczu złożonym `shipmentId|shipmentDate`, łączona w
+pamięci z `Shipment[]` przy renderowaniu (`SorterTable.tsx`).
+
+**Zapis**: przełączenie Switcha wywołuje `ShipmentActionRepository.setHandled`
+(optymistyczny update w UI, `upsert` po `(shipment_id, shipment_date)`,
+revert w UI jeśli zapis się nie powiedzie).
+
+**Retencja — brak historii**: aplikacja pracuje wyłącznie na bieżącym
+dniu, więc po każdym zaakceptowanym imporcie `ImportScreen` wywołuje
+`pruneShipmentActions(dzisiaj)` (best-effort — błąd nie maskuje udanego
+zapisu `shipments`), które usuwa wpisy z `shipment_date` różnym od
+dzisiejszego. Pierwsze wywołanie danego dnia realnie czyści wczorajsze
+wpisy; kolejne wywołania tego samego dnia (ponowny import) są no-opem,
+więc dzisiejszy stan „Obsłużono” przetrwa.
+
 ## Struktura katalogów
 
 ```
@@ -247,6 +289,7 @@ src/
     mapper/                    Chute ID -> Trasa -> Grupa -> Sortujacy
     analyzer/                  liczenie podsumowania importu
     repository/                JEDYNE moduly importujace supabaseClient
+                                (w tym shipmentActionRepository.ts -- stan "Obsluzono")
     referenceData/             UI administracji tabela routes
     sorters/                   UI zarzadzania sortujacymi (sorters + sorter_routes)
     users/                     UI zarzadzania kontami (admin-only)
