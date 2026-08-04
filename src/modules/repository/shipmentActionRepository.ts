@@ -1,5 +1,12 @@
 import { supabase } from "../../lib/supabaseClient";
 import { reportError } from "../monitoring/reportError";
+import { buildHandledKey } from "../normalizer/normalize";
+
+// Re-eksport -- historyczne miejsce importu dla App.tsx/testow. Definicje
+// sa w normalize.ts (czysty modul, bez inicjalizacji klienta Supabase),
+// zeby moduly logiki (grouping.ts) mogly z nich korzystac bez pociagania
+// za soba tego pliku.
+export { buildHandledKey, isShipmentHandled } from "../normalizer/normalize";
 
 export interface ShipmentActionRow {
   shipmentId: string;
@@ -11,12 +18,6 @@ interface ShipmentActionDbRow {
   shipment_id: string;
   shipment_date: string;
   handled: boolean;
-}
-
-// Klucz uzywany do laczenia shipment_actions z Shipment[] w pamieci --
-// zlozony, bo shipment_id sam w sobie nie jest unikalny miedzy dniami.
-export function buildHandledKey(shipmentId: string, shipmentDate: string): string {
-  return `${shipmentId}|${shipmentDate}`;
 }
 
 // Czysta funkcja (bez Supabase) -- testowalna wprost. Trzyma tylko wpisy

@@ -1,22 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createQueryBuilderMock } from "../../test/supabaseMock";
+import { buildHandledKey } from "../normalizer/normalize";
 
 const { supabase } = vi.hoisted(() => ({ supabase: { from: vi.fn(), rpc: vi.fn() } }));
 vi.mock("../../lib/supabaseClient", () => ({ supabase }));
 
-const { buildHandledKey, buildHandledMap, fetchHandledMap, setHandled, pruneShipmentActions } = await import(
+const { buildHandledMap, fetchHandledMap, setHandled, pruneShipmentActions } = await import(
   "./shipmentActionRepository"
 );
 
+// buildHandledKey/isShipmentHandled sa testowane w normalize.test.ts --
+// tu re-eksportowane wylacznie dla wygody importu (patrz komentarz w
+// shipmentActionRepository.ts).
 describe("shipmentActionRepository", () => {
   beforeEach(() => {
     supabase.from.mockReset();
-  });
-
-  describe("buildHandledKey", () => {
-    it("laczy shipmentId i shipmentDate zlozonym kluczem", () => {
-      expect(buildHandledKey("1001", "2026-07-23")).toBe("1001|2026-07-23");
-    });
   });
 
   describe("buildHandledMap", () => {

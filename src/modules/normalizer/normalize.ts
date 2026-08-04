@@ -1,6 +1,8 @@
 // Normalizacja pol wspolnych dla obu raportow: klucz joina i data.
 // Parser dostarcza surowy tekst; ten modul czyni go porownywalnym.
 
+import type { Shipment } from "../../types/shipment";
+
 export function normalizeJoinKey(value: string): string {
   return value.trim().toUpperCase().replace(/\s+/g, "");
 }
@@ -99,4 +101,21 @@ const naturalCollator = new Intl.Collator("pl", { numeric: true, sensitivity: "b
 
 export function naturalCompare(a: string, b: string): number {
   return naturalCollator.compare(a, b);
+}
+
+// Klucz uzywany do laczenia shipment_actions z Shipment[] w pamieci --
+// zlozony, bo shipment_id sam w sobie nie jest unikalny miedzy dniami.
+// Czysta funkcja bez zaleznosci od Supabase, zeby moduly logiki
+// (grouping.ts, SorterTable) mogly ja importowac bez pociagania za soba
+// inicjalizacji klienta Supabase (patrz shipmentActionRepository.ts, ktory
+// ja re-eksportuje).
+export function buildHandledKey(shipmentId: string, shipmentDate: string): string {
+  return `${shipmentId}|${shipmentDate}`;
+}
+
+// Brak/niepoprawna data liczy sie jako nieobsluzone (SorterTable,
+// TrasaListView -- pasek statusu kafelka).
+export function isShipmentHandled(shipment: Shipment, handledMap: Map<string, boolean>): boolean {
+  const shipmentDate = toLocalDateKey(shipment.lastPhyCpDt);
+  return shipmentDate ? (handledMap.get(buildHandledKey(shipment.shipmentId, shipmentDate)) ?? false) : false;
 }

@@ -1,5 +1,5 @@
 import type { Grupa, Shipment } from "../../types/shipment";
-import { naturalCompare } from "../normalizer/normalize";
+import { isShipmentHandled, naturalCompare } from "../normalizer/normalize";
 
 export const GRUPY: Grupa[] = ["P1", "P2", "P3", "COY004"];
 
@@ -54,15 +54,26 @@ export function shipmentsForSorter(shipments: Shipment[], sortujacy: string): Sh
 export interface TrasaSummary {
   trasa: string;
   count: number;
+  // Czy WSZYSTKIE przesylki tej trasy sa oznaczone jako "Obsluzono" --
+  // uzywane do paska statusu na kafelku (TrasaListView). Trasa zawsze ma
+  // count >= 1 tutaj (bucketowanie z realnych przesylek), wiec nie ma
+  // przypadku "0 z 0".
+  allHandled: boolean;
 }
 
-export function trasyInSorter(shipments: Shipment[]): TrasaSummary[] {
-  const counts = new Map<string, number>();
+export function trasyInSorter(shipments: Shipment[], handledMap: Map<string, boolean>): TrasaSummary[] {
+  const bucket = new Map<string, Shipment[]>();
   for (const s of shipments) {
-    counts.set(s.trasa, (counts.get(s.trasa) ?? 0) + 1);
+    const list = bucket.get(s.trasa) ?? [];
+    list.push(s);
+    bucket.set(s.trasa, list);
   }
-  return Array.from(counts.entries())
-    .map(([trasa, count]) => ({ trasa, count }))
+  return Array.from(bucket.entries())
+    .map(([trasa, list]) => ({
+      trasa,
+      count: list.length,
+      allHandled: list.every((s) => isShipmentHandled(s, handledMap)),
+    }))
     .sort((a, b) => a.trasa.localeCompare(b.trasa));
 }
 

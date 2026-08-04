@@ -254,6 +254,8 @@ button.secondary {
 }
 
 .tile {
+  position: relative;
+  overflow: hidden;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 12px;
@@ -271,6 +273,28 @@ button.secondary {
 
 .tile:hover {
   border-color: var(--accent);
+}
+
+/* Pasek statusu na lewej krawedzi kafelka trasy (TrasaListView) --
+   zielony gdy WSZYSTKIE przesylki tej trasy sa "Obsluzono", czerwony w
+   przeciwnym wypadku. overflow:hidden na .tile przycina pasek do
+   zaokraglonego rogu, wiec nie trzeba osobno dopasowywac border-radius. */
+.tile--handled::before,
+.tile--pending::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+}
+
+.tile--handled::before {
+  background: var(--success);
+}
+
+.tile--pending::before {
+  background: var(--danger);
 }
 
 .tile-title {

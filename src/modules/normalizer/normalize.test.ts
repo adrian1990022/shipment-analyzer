@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
+import { shipment } from "../../test/fixtures";
 import {
+  buildHandledKey,
   formatTimeHHmm,
   isSameLocalDay,
+  isShipmentHandled,
   naturalCompare,
   normalizeJoinKey,
   parseFlexibleDate,
@@ -129,6 +132,31 @@ describe("toLocalDateKey", () => {
   it("dopelnia zerami miesiac/dzien ponizej 10", () => {
     const iso = new Date(2026, 0, 5, 12, 0, 0).toISOString();
     expect(toLocalDateKey(iso)).toBe("2026-01-05");
+  });
+});
+
+describe("buildHandledKey", () => {
+  it("laczy shipmentId i shipmentDate zlozonym kluczem", () => {
+    expect(buildHandledKey("1001", "2026-07-23")).toBe("1001|2026-07-23");
+  });
+});
+
+describe("isShipmentHandled", () => {
+  it("true, gdy klucz shipmentId|shipmentDate jest w mapie", () => {
+    const s = shipment({ shipmentId: "1001", lastPhyCpDt: "2026-07-22T10:00:00.000Z" });
+    const map = new Map([[buildHandledKey("1001", "2026-07-22"), true]]);
+    expect(isShipmentHandled(s, map)).toBe(true);
+  });
+
+  it("false, gdy klucza brak w mapie", () => {
+    const s = shipment({ shipmentId: "1001", lastPhyCpDt: "2026-07-22T10:00:00.000Z" });
+    expect(isShipmentHandled(s, new Map())).toBe(false);
+  });
+
+  it("false, gdy lastPhyCpDt jest null (brak daty -> nie da sie zbudowac klucza)", () => {
+    const s = shipment({ shipmentId: "1001", lastPhyCpDt: null });
+    const map = new Map([[buildHandledKey("1001", "2026-07-22"), true]]);
+    expect(isShipmentHandled(s, map)).toBe(false);
   });
 });
 

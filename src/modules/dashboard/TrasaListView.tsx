@@ -5,17 +5,19 @@ export function TrasaListView({
   shipments,
   grupa,
   sortujacy,
+  handledMap,
   onSelectTrasa,
   onBack,
 }: {
   shipments: Shipment[];
   grupa: Grupa;
   sortujacy: string;
+  handledMap: Map<string, boolean>;
   onSelectTrasa: (trasa: string) => void;
   onBack: () => void;
 }) {
   const inSorter = shipmentsForSorter(shipmentsInGrupa(shipments, grupa), sortujacy);
-  const trasy = trasyInSorter(inSorter);
+  const trasy = trasyInSorter(inSorter, handledMap);
 
   return (
     <div className="screen">
@@ -27,8 +29,12 @@ export function TrasaListView({
       </h1>
       {trasy.length === 0 && <p className="hint">Brak tras dla tego sortującego.</p>}
       <div className="tiles">
-        {trasy.map(({ trasa, count }) => (
-          <button key={trasa} className="tile" onClick={() => onSelectTrasa(trasa)}>
+        {trasy.map(({ trasa, count, allHandled }) => (
+          <button
+            key={trasa}
+            className={`tile ${allHandled ? "tile--handled" : "tile--pending"}`}
+            onClick={() => onSelectTrasa(trasa)}
+          >
             <span className="tile-title">{trasa}</span>
             <span className="tile-count">{count}</span>
           </button>

@@ -2,10 +2,9 @@ import { useMemo, useState } from "react";
 import type { Grupa, Shipment } from "../../types/shipment";
 import { shipmentsForSorter, shipmentsForTrasa, shipmentsInGrupa } from "./grouping";
 import { parseWeightDimension } from "./parseWeightDimension";
-import { buildHandledKey } from "../repository/shipmentActionRepository";
-import { formatTimeHHmm, toLocalDateKey } from "../normalizer/normalize";
+import { formatTimeHHmm, isShipmentHandled, toLocalDateKey } from "../normalizer/normalize";
 
-type SortKey = "trasa" | "consigneeName";
+type SortKey = "trasa" | "consigneeName" | "lastPhyCpDt";
 
 function WeightDimensionCell({ value }: { value: string }) {
   const parsed = parseWeightDimension(value);
@@ -70,7 +69,9 @@ export function SorterTable({
     let forSorter = shipmentsForSorter(inGroup, sortujacy);
     if (trasa) forSorter = shipmentsForTrasa(forSorter, trasa);
     const sorted = [...forSorter].sort((a, b) => {
-      const cmp = a[sortKey].localeCompare(b[sortKey]);
+      // lastPhyCpDt to ISO string (albo null) -- porownanie leksykograficzne
+      // ISO odpowiada porownaniu chronologicznemu, ?? "" zabezpiecza null.
+      const cmp = (a[sortKey] ?? "").localeCompare(b[sortKey] ?? "");
       return sortAsc ? cmp : -cmp;
     });
     return sorted;
@@ -82,8 +83,7 @@ export function SorterTable({
   const { handledCount, total } = useMemo(() => {
     let count = 0;
     for (const s of rows) {
-      const shipmentDate = toLocalDateKey(s.lastPhyCpDt);
-      if (shipmentDate && handledMap.get(buildHandledKey(s.shipmentId, shipmentDate))) count += 1;
+      if (isShipmentHandled(s, handledMap)) count += 1;
     }
     return { handledCount: count, total: rows.length };
   }, [rows, handledMap]);
@@ -121,37 +121,39 @@ export function SorterTable({
               </th>
             )}
             <th>Shipment ID</th>
-            <th>Last Phy Cp</th>
             <th className="sortable" onClick={() => toggleSort("consigneeName")}>
               Consignee Name {sortKey === "consigneeName" && (sortAsc ? "↑" : "↓")}
             </th>
+            <th>Adres</th>
             <th>Weight / Dimension</th>
-            <th>Czas</th>
+            <th>Last Phy Cp</th>
+            <th className="sortable" onClick={() => toggleSort("lastPhyCpDt")}>
+              Czas {sortKey === "lastPhyCpDt" && (sortAsc ? "↑" : "↓")}
+            </th>
             <th>Remarks</th>
-            <th>Total Pcs</th>
             <th>Wystąpiło</th>
+            <th>Total Pcs</th>
             <th>Obsłużono</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((s) => {
             const shipmentDate = toLocalDateKey(s.lastPhyCpDt);
-            const isHandled = shipmentDate
-              ? (handledMap.get(buildHandledKey(s.shipmentId, shipmentDate)) ?? false)
-              : false;
+            const isHandled = isShipmentHandled(s, handledMap);
             return (
               <tr key={s.shipmentId} className={isHandled ? "row-handled" : undefined}>
                 {showTrasaColumn && <td>{s.trasa}</td>}
                 <td>{s.shipmentId}</td>
-                <td>{s.lastPhyCp}</td>
                 <td>{s.consigneeName}</td>
+                <td>{s.rcvrAddr1}</td>
                 <td>
                   <WeightDimensionCell value={s.weightDimension} />
                 </td>
+                <td>{s.lastPhyCp}</td>
                 <td>{formatTimeHHmm(s.lastPhyCpDt)}</td>
                 <td>{s.remarks}</td>
-                <td>{s.shpTotPcs ?? ""}</td>
                 <td>{s.wystapilo}</td>
+                <td>{s.shpTotPcs ?? ""}</td>
                 <td>
                   <HandledSwitch
                     checked={isHandled}

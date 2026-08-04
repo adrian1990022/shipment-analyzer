@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { shipment } from "../../test/fixtures";
+import { buildHandledKey } from "../normalizer/normalize";
 import {
   countByGrupa,
   hasTrasaLevel,
@@ -62,6 +63,8 @@ describe("sortersInGrupa", () => {
 });
 
 describe("shipmentsForSorter / trasyInSorter / shipmentsForTrasa", () => {
+  const noneHandled = new Map<string, boolean>();
+
   it("filtruje po sortujacym i wylicza trasy w jego obrebie", () => {
     const shipments = [
       shipment({ sortujacy: "Jan Kowalski", trasa: "WAEX" }),
@@ -71,15 +74,28 @@ describe("shipmentsForSorter / trasyInSorter / shipmentsForTrasa", () => {
 
     const forSorter = shipmentsForSorter(shipments, "Jan Kowalski");
     expect(forSorter).toHaveLength(2);
-    expect(trasyInSorter(forSorter)).toEqual([{ trasa: "WAEX", count: 2 }]);
+    expect(trasyInSorter(forSorter, noneHandled)).toEqual([{ trasa: "WAEX", count: 2, allHandled: false }]);
   });
 
   it("trasyInSorter sortuje alfabetycznie gdy jest wiecej niz jedna trasa", () => {
     const shipments = [shipment({ trasa: "WAEF" }), shipment({ trasa: "WAEX" }), shipment({ trasa: "WAEF" })];
-    expect(trasyInSorter(shipments)).toEqual([
-      { trasa: "WAEF", count: 2 },
-      { trasa: "WAEX", count: 1 },
+    expect(trasyInSorter(shipments, noneHandled)).toEqual([
+      { trasa: "WAEF", count: 2, allHandled: false },
+      { trasa: "WAEX", count: 1, allHandled: false },
     ]);
+  });
+
+  it("allHandled=true tylko gdy WSZYSTKIE przesylki danej trasy sa obsluzone", () => {
+    const a = shipment({ shipmentId: "1001", trasa: "WAEX", lastPhyCpDt: "2026-07-22T10:00:00.000Z" });
+    const b = shipment({ shipmentId: "1002", trasa: "WAEX", lastPhyCpDt: "2026-07-22T11:00:00.000Z" });
+    const allHandledMap = new Map([
+      [buildHandledKey("1001", "2026-07-22"), true],
+      [buildHandledKey("1002", "2026-07-22"), true],
+    ]);
+    const partialMap = new Map([[buildHandledKey("1001", "2026-07-22"), true]]);
+
+    expect(trasyInSorter([a, b], allHandledMap)).toEqual([{ trasa: "WAEX", count: 2, allHandled: true }]);
+    expect(trasyInSorter([a, b], partialMap)).toEqual([{ trasa: "WAEX", count: 2, allHandled: false }]);
   });
 
   it("filtruje po dokladnej trasie", () => {

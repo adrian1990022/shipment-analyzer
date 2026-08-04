@@ -205,6 +205,7 @@ function AppShell() {
             shipments={shipments}
             grupa={view.grupa}
             sortujacy={view.sortujacy}
+            handledMap={handledMap}
             onSelectTrasa={(trasa) =>
               nav.navigate({ screen: "trasa", grupa: view.grupa, sortujacy: view.sortujacy, trasa })
             }
