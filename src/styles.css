@@ -373,6 +373,11 @@ th.sortable {
   user-select: none;
 }
 
+th.col-center,
+td.col-center {
+  text-align: center;
+}
+
 th.sortable:hover {
   color: var(--accent);
 }

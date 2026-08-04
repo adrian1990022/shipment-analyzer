@@ -124,16 +124,17 @@ export function SorterTable({
             <th className="sortable" onClick={() => toggleSort("consigneeName")}>
               Consignee Name {sortKey === "consigneeName" && (sortAsc ? "↑" : "↓")}
             </th>
-            <th>Adres</th>
+            <th>Ulica</th>
+            <th>Miasto</th>
             <th>Weight / Dimension</th>
-            <th>Last Phy Cp</th>
             <th className="sortable" onClick={() => toggleSort("lastPhyCpDt")}>
               Czas {sortKey === "lastPhyCpDt" && (sortAsc ? "↑" : "↓")}
             </th>
+            <th>Last CP</th>
             <th>Remarks</th>
-            <th>Wystąpiło</th>
-            <th>Total Pcs</th>
-            <th>Obsłużono</th>
+            <th>Niezeskanowane</th>
+            <th className="col-center">Total Pcs</th>
+            <th className="col-center">Obsłużono</th>
           </tr>
         </thead>
         <tbody>
@@ -146,15 +147,16 @@ export function SorterTable({
                 <td>{s.shipmentId}</td>
                 <td>{s.consigneeName}</td>
                 <td>{s.rcvrAddr1}</td>
+                <td>{s.rcvrCity}</td>
                 <td>
                   <WeightDimensionCell value={s.weightDimension} />
                 </td>
-                <td>{s.lastPhyCp}</td>
                 <td>{formatTimeHHmm(s.lastPhyCpDt)}</td>
+                <td>{s.lastPhyCp}</td>
                 <td>{s.remarks}</td>
                 <td>{s.wystapilo}</td>
-                <td>{s.shpTotPcs ?? ""}</td>
-                <td>
+                <td className="col-center">{s.shpTotPcs ?? ""}</td>
+                <td className="col-center">
                   <HandledSwitch
                     checked={isHandled}
                     disabled={!shipmentDate}
