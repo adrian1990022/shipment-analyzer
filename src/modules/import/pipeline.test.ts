@@ -47,6 +47,9 @@ function mockRoutesAndSorters() {
     .mockReturnValueOnce(createQueryBuilderMock({ data: [] }));
 }
 
+// Wpisana godzina 12:00 -> odciecie 11:45 (regula 15 minut).
+const CUTOFF = new Date(2026, 6, 22, 11, 45, 0);
+
 describe("runImportPipeline", () => {
   beforeEach(() => {
     supabase.from.mockReset();
@@ -57,7 +60,7 @@ describe("runImportPipeline", () => {
     vi.useRealTimers();
   });
 
-  it("laczy Panorama+Sherloc, filtruje do dzis, mapuje trasy end-to-end", async () => {
+  it("laczy Panorama+Sherloc, stosuje regule 15 minut, mapuje trasy end-to-end", async () => {
     mockRoutesAndSorters();
 
     const panorama = panoramaFile([
@@ -65,7 +68,7 @@ describe("runImportPipeline", () => {
     ]);
     const sherloc = sherlocFile([["1001", "Jan Kowalski", "ul. Testowa 1", "00-001", "Warszawa"]]);
 
-    const result = await runImportPipeline(panorama, sherloc);
+    const result = await runImportPipeline(panorama, sherloc, CUTOFF);
 
     expect(result.summary.totalRows).toBe(1);
     expect(result.summary.matchedRows).toBe(1);
@@ -83,7 +86,7 @@ describe("runImportPipeline", () => {
     const sherloc = sherlocFile([["1001", "Jan Kowalski", "", "", ""]]);
 
     // sherloc jako "fileA", panorama jako "fileB"
-    const result = await runImportPipeline(sherloc, panorama);
+    const result = await runImportPipeline(sherloc, panorama, CUTOFF);
 
     expect(result.shipments).toHaveLength(1);
   });
@@ -92,37 +95,43 @@ describe("runImportPipeline", () => {
     const a = panoramaFile([["1001", "", "", "", "", "", "", "", "", "P1R01"]]);
     const b = panoramaFile([["1002", "", "", "", "", "", "", "", "", "P1R02"]], "panorama2.xlsx");
 
-    await expect(runImportPipeline(a, b)).rejects.toThrow(PipelineError);
+    await expect(runImportPipeline(a, b, CUTOFF)).rejects.toThrow(PipelineError);
   });
 
   it("odrzuca plik z nierozpoznawalnymi naglowkami", async () => {
     const bad = buildXlsxFile(["Foo", "Bar"], [["1", "2"]]);
     const sherloc = sherlocFile([["1001", "Jan", "", "", ""]]);
 
-    await expect(runImportPipeline(bad, sherloc)).rejects.toThrow(PipelineError);
+    await expect(runImportPipeline(bad, sherloc, CUTOFF)).rejects.toThrow(PipelineError);
   });
 
   it("odrzuca gdy Panorama nie ma zadnych wierszy z Shipment ID", async () => {
     const emptyPanorama = panoramaFile([]);
     const sherloc = sherlocFile([["1001", "Jan", "", "", ""]]);
 
-    await expect(runImportPipeline(emptyPanorama, sherloc)).rejects.toThrow(PipelineError);
+    await expect(runImportPipeline(emptyPanorama, sherloc, CUTOFF)).rejects.toThrow(PipelineError);
   });
 
-  it("rekordy spoza dzisiejszej daty i niezmapowane bramy nie trafiaja do wyniku", async () => {
+  it("starsze przesylki (takze z poprzednich dni) zostaja; swieze skany, bez daty i niezmapowane bramy odpadaja", async () => {
     mockRoutesAndSorters();
 
     const panorama = panoramaFile([
-      ["1001", "", "", "OK", "22/07/2026 10:00", "", "", "", "A", "P1R01"], // dzisiaj, zmapowany
-      ["1002", "", "", "OK", "21/07/2026 10:00", "", "", "", "B", "P1R01"], // wczoraj
-      ["1003", "", "", "OK", "22/07/2026 10:00", "", "", "", "C", "NIEZNANY"], // dzis, niezmapowany
+      ["1001", "", "", "OK", "22/07/2026 10:00", "", "", "", "A", "P1R01"], // dzisiaj, starszy niz 15 min
+      ["1002", "", "", "OK", "21/07/2026 10:00", "", "", "", "B", "P1R01"], // wczoraj -- zostaje
+      ["1003", "", "", "OK", "22/07/2026 10:00", "", "", "", "C", "NIEZNANY"], // niezmapowany
+      ["1004", "", "", "OK", "22/07/2026 11:50", "", "", "", "D", "P1R01"], // w oknie 15 min
+      ["1005", "", "", "OK", "", "", "", "", "E", "P1R01"], // bez daty
     ]);
     const sherloc = sherlocFile([["1001", "A", "", "", ""]]);
 
-    const result = await runImportPipeline(panorama, sherloc);
+    const result = await runImportPipeline(panorama, sherloc, CUTOFF);
 
-    expect(result.summary.totalRows).toBe(3);
-    expect(result.shipments).toHaveLength(1);
+    expect(result.summary.totalRows).toBe(5);
+    expect(result.shipments.map((s) => s.shipmentId)).toEqual(["1001", "1002"]);
+    expect(result.summary.resultRows).toBe(2);
+    expect(result.summary.recentSkippedRows).toBe(1);
+    expect(result.summary.noDateRows).toBe(1);
+    expect(result.summary.cutoffAt).toBe(CUTOFF.toISOString());
     expect(result.unmappedChuteIds).toEqual(["NIEZNANY"]);
   });
 });

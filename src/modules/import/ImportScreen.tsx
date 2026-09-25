@@ -2,7 +2,8 @@ import { useState } from "react";
 import { runImportPipeline, PipelineError } from "./pipeline";
 import { replaceShipments } from "../repository/shipmentsRepository";
 import { pruneShipmentActions } from "../repository/shipmentActionRepository";
-import { toLocalDateKey } from "../normalizer/normalize";
+import { formatTimeHHmm, toLocalDateKey } from "../normalizer/normalize";
+import { RECENT_SCAN_WINDOW_MINUTES, buildScanCutoff } from "../dateFilter/filterByScanCutoff";
 import { reportError } from "../monitoring/reportError";
 import type { ImportResult } from "../../types/shipment";
 
@@ -20,19 +21,44 @@ const GROUP_LABELS: Record<string, string> = {
   COY004: "COY004",
 };
 
+function currentTimeHHmm(): string {
+  const now = new Date();
+  return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+}
+
+// Najstarszy dzien skanu w wyniku (albo dzisiaj, jesli wczesniejszy) --
+// granica dla pruneShipmentActions: oznaczenia z dni wciaz obecnych w
+// raporcie musza przetrwac.
+function oldestDateKey(result: ImportResult): string {
+  let oldest = toLocalDateKey(new Date().toISOString())!;
+  for (const s of result.shipments) {
+    const key = toLocalDateKey(s.lastPhyCpDt);
+    if (key && key < oldest) oldest = key;
+  }
+  return oldest;
+}
+
 export function ImportScreen({ onSaved }: { onSaved: () => void }) {
   const [stage, setStage] = useState<Stage>({ kind: "picking", error: null });
   const [fileA, setFileA] = useState<File | null>(null);
   const [fileB, setFileB] = useState<File | null>(null);
+  // Godzina, od ktorej liczone jest okno 15 minut wstecz (przesylki ze
+  // skanem w tym oknie sa pomijane). Domyslnie biezaca godzina.
+  const [cutoffTime, setCutoffTime] = useState(currentTimeHHmm);
 
   async function handleAnalyze() {
+    const cutoff = buildScanCutoff(cutoffTime);
+    if (!cutoff) {
+      setStage({ kind: "picking", error: "Wpisz poprawną godzinę (GG:MM)." });
+      return;
+    }
     if (!fileA || !fileB) {
       setStage({ kind: "picking", error: "Wybierz oba pliki: Panorama i Sherloc." });
       return;
     }
     setStage({ kind: "analyzing" });
     try {
-      const result = await runImportPipeline(fileA, fileB);
+      const result = await runImportPipeline(fileA, fileB, cutoff);
       setStage({ kind: "reviewing", result });
     } catch (err) {
       // PipelineError = oczekiwana walidacja (zly plik, nierozpoznane
@@ -55,11 +81,12 @@ export function ImportScreen({ onSaved }: { onSaved: () => void }) {
       return;
     }
     try {
-      // Best-effort: usuwa shipment_actions sprzed dzisiejszego dnia.
-      // Blad NIE moze zamaskowac udanego zapisu shipments jako porazki --
-      // reportError juz odpalony wewnatrz pruneShipmentActions, najgorszy
-      // scenariusz to kilka nieaktualnych wierszy do nastepnego pruningu.
-      await pruneShipmentActions(toLocalDateKey(new Date().toISOString())!);
+      // Best-effort: usuwa shipment_actions starsze niz najstarsza przesylka
+      // w tym imporcie. Blad NIE moze zamaskowac udanego zapisu shipments
+      // jako porazki -- reportError juz odpalony wewnatrz
+      // pruneShipmentActions, najgorszy scenariusz to kilka nieaktualnych
+      // wierszy do nastepnego pruningu.
+      await pruneShipmentActions(oldestDateKey(result));
     } catch {
       // celowo brak dalszej obslugi -- patrz komentarz wyzej
     }
@@ -79,6 +106,15 @@ export function ImportScreen({ onSaved }: { onSaved: () => void }) {
 
       {(stage.kind === "picking" || stage.kind === "analyzing") && (
         <div className="card">
+          <label className="file-field">
+            <span>Godzina raportu</span>
+            <input type="time" value={cutoffTime} onChange={(e) => setCutoffTime(e.target.value)} />
+          </label>
+          <p className="hint">
+            Przesylki, ktorych ostatni skan byl w ciagu {RECENT_SCAN_WINDOW_MINUTES} minut przed ta
+            godzina (albo pozniej), zostana pominiete. Wszystkie starsze -- takze z poprzednich dni --
+            zostaja w raporcie.
+          </p>
           <label className="file-field">
             <span>Plik 1</span>
             <input
@@ -144,7 +180,14 @@ function ImportSummaryCard({
         <li>Wiersze Panorama (razem): {summary.totalRows}</li>
         <li>Dopasowane do Sherloc: {summary.matchedRows}</li>
         <li>Bez dopasowania w Sherloc: {summary.unmatchedRows}</li>
-        <li>Z dzisiejsza data (Last Phy Cp dt): {summary.todayRows}</li>
+        {summary.cutoffAt && (
+          <li>
+            Pominiete -- skan w ciagu {RECENT_SCAN_WINDOW_MINUTES} min przed godzina raportu (od{" "}
+            {formatTimeHHmm(summary.cutoffAt)}): {summary.recentSkippedRows}
+          </li>
+        )}
+        <li>Pominiete -- brak daty ostatniego skanu: {summary.noDateRows}</li>
+        <li>Przesylki w raporcie: {summary.resultRows}</li>
         <li>Bez mapowania trasy (Chute ID spoza tabeli routes): {summary.unmappedRows}</li>
       </ul>
 

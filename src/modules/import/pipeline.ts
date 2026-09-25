@@ -3,7 +3,7 @@ import { detectReportType, reportKindLabel } from "../parser/detectReportType";
 import { parsePanoramaRows } from "../parser/parsePanorama";
 import { parseSherlocRows } from "../parser/parseSherloc";
 import { joinReports } from "../joiner/joinReports";
-import { filterToday } from "../dateFilter/filterToday";
+import { filterByScanCutoff } from "../dateFilter/filterByScanCutoff";
 import { dedupeByShipmentId } from "../dedup/dedupeByShipmentId";
 import { mapRoutes } from "../mapper/mapRoutes";
 import { summarize } from "../analyzer/summarize";
@@ -17,9 +17,11 @@ export class PipelineError extends Error {}
 // przegladarki -- nic nie jest zapisywane do Supabase (poza odczytem
 // tabeli routes, potrzebnym do mapowania). Zapis nastepuje dopiero
 // przez repository.replaceShipments, wywolane po akceptacji przez uzytkownika.
+// cutoff = wpisana przy imporcie godzina minus 15 minut (buildScanCutoff).
 export async function runImportPipeline(
   fileA: File,
-  fileB: File
+  fileB: File,
+  cutoff: Date
 ): Promise<ImportResult> {
   const rowsA = await readWorkbookRows(fileA);
   const rowsB = await readWorkbookRows(fileB);
@@ -56,8 +58,11 @@ export async function runImportPipeline(
   }
 
   const { rows: joinedRows, matchedCount, unmatchedCount } = joinReports(panoramaRows, sherlocRows);
-  const { todayRows } = filterToday(joinedRows);
-  const { rows: dedupedRows, occurrenceCounts } = dedupeByShipmentId(todayRows);
+  // Najpierw deduplikacja (reprezentant = najnowszy skan), potem regula
+  // 15 minut -- liczy sie OSTATNI skan przesylki. Starsze przesylki, takze
+  // z poprzednich dni, zostaja w wyniku (od 2026-09-25).
+  const { rows: dedupedAll, occurrenceCounts } = dedupeByShipmentId(joinedRows);
+  const { keptRows: dedupedRows, recentCount, noDateCount } = filterByScanCutoff(dedupedAll, cutoff);
 
   const [routes, sorterNameByTrasa] = await Promise.all([fetchRoutes(), fetchSorterNameByTrasa()]);
   const { shipments, unmappedChuteIds, unmappedRowCount } = mapRoutes(
@@ -72,6 +77,9 @@ export async function runImportPipeline(
     matchedRows: matchedCount,
     unmatchedRows: unmatchedCount,
     unmappedRows: unmappedRowCount,
+    recentSkippedRows: recentCount,
+    noDateRows: noDateCount,
+    cutoffAt: cutoff.toISOString(),
     shipments,
     panoramaFilename,
     sherlocFilename,

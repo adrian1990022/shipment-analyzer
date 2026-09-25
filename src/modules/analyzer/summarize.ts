@@ -12,6 +12,9 @@ export function summarize(input: {
   matchedRows: number;
   unmatchedRows: number;
   unmappedRows: number;
+  recentSkippedRows?: number;
+  noDateRows?: number;
+  cutoffAt?: string | null;
   shipments: Shipment[];
   panoramaFilename: string;
   sherlocFilename: string;
@@ -26,7 +29,10 @@ export function summarize(input: {
     matchedRows: input.matchedRows,
     unmatchedRows: input.unmatchedRows,
     unmappedRows: input.unmappedRows,
-    todayRows: input.shipments.length,
+    resultRows: input.shipments.length,
+    recentSkippedRows: input.recentSkippedRows ?? 0,
+    noDateRows: input.noDateRows ?? 0,
+    cutoffAt: input.cutoffAt ?? null,
     groupCounts,
     panoramaFilename: input.panoramaFilename,
     sherlocFilename: input.sherlocFilename,

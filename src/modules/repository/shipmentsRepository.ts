@@ -101,7 +101,7 @@ export async function replaceShipments(
       matched_rows: summary.matchedRows,
       unmatched_rows: summary.unmatchedRows,
       unmapped_rows: summary.unmappedRows,
-      today_rows: summary.todayRows,
+      today_rows: summary.resultRows,
       group_counts: summary.groupCounts,
     })
     .select("id")

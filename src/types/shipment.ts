@@ -22,7 +22,7 @@ export interface Shipment {
   // Nazwa sortujacego (z sorters/sorter_routes -- patrz SorterRepository),
   // albo -- gdy trasa nie ma przypisania -- fallback MVP (3. litera trasy).
   sortujacy: string;
-  // Ile razy dany Shipment ID wystapil w dzisiejszych danych Panorama
+  // Ile razy dany Shipment ID wystapil w danych Panorama
   // (przed deduplikacja) -- patrz modules/dedup/dedupeByShipmentId.ts.
   wystapilo: number;
 }
@@ -41,7 +41,16 @@ export interface ImportSummary {
   matchedRows: number;
   unmatchedRows: number;
   unmappedRows: number;
-  todayRows: number;
+  // Przesylki w wyniku (po deduplikacji, regule 15 minut i mapowaniu tras).
+  // W bazie zapisywane w kolumnie imports.today_rows (nazwa historyczna z
+  // czasow filtra "tylko dzisiaj", zniesionego 2026-09-25).
+  resultRows: number;
+  // Pominiete, bo ostatni skan byl w ciagu 15 minut przed wpisana godzina.
+  recentSkippedRows: number;
+  // Pominiete, bo brak/niepoprawna data ostatniego skanu.
+  noDateRows: number;
+  // Moment odciecia (wpisana godzina minus 15 minut), ISO; null gdy brak.
+  cutoffAt: string | null;
   groupCounts: Record<Grupa, number>;
   panoramaFilename: string;
   sherlocFilename: string;

@@ -25,6 +25,7 @@ export function createQueryBuilderMock(result: MockResult) {
     neq: vi.fn(() => builder),
     order: vi.fn(() => builder),
     gte: vi.fn(() => builder),
+    lt: vi.fn(() => builder),
     single: vi.fn(() => resolved),
     maybeSingle: vi.fn(() => resolved),
     then: (onFulfilled: Parameters<Promise<unknown>["then"]>[0], onRejected: Parameters<Promise<unknown>["then"]>[1]) =>

@@ -14,7 +14,7 @@ export function Dashboard({
     <div className="screen">
       <h1>Dashboard</h1>
       {shipments.length === 0 && (
-        <p className="hint">Brak danych z dzisiejszego dnia. Wykonaj import raportow.</p>
+        <p className="hint">Brak danych. Wykonaj import raportow.</p>
       )}
       <div className="tiles">
         {GRUPY.map((grupa) => (

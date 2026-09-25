@@ -21,7 +21,7 @@ function WeightDimensionCell({ value }: { value: string }) {
 
 // "Obsluzono" = ktos juz sie tym zajmuje, NIE "problem rozwiazany" (Sprint
 // UX 1.1). shipmentDate === null (brak/niepoprawna Last Phy Cp dt) nie
-// powinno sie zdarzyc dla wierszy, ktore przeszly filterToday -- ale
+// powinno sie zdarzyc dla wierszy, ktore przeszly filterByScanCutoff -- ale
 // defensywnie wylaczamy Switch zamiast zgadywac date.
 function HandledSwitch({
   checked,

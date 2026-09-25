@@ -34,7 +34,16 @@ describe("dedupeByShipmentId", () => {
     expect(occurrenceCounts.get("1001")).toBe(3);
   });
 
-  it("zachowuje PIERWSZE wystapienie jako reprezentanta", () => {
+  it("reprezentantem jest wiersz z NAJNOWSZYM skanem, niezaleznie od kolejnosci w pliku", () => {
+    const older = { panorama: panoramaRow({ shipmentId: "1001", remarks: "starszy", lastPhyCpDt: "24/09/2026 18:00" }), sherloc: null };
+    const newer = { panorama: panoramaRow({ shipmentId: "1001", remarks: "nowszy", lastPhyCpDt: "25/09/2026 09:00" }), sherloc: null };
+    const bezDaty = { panorama: panoramaRow({ shipmentId: "1001", remarks: "bez daty", lastPhyCpDt: "" }), sherloc: null };
+
+    expect(dedupeByShipmentId([older, newer, bezDaty]).rows[0].panorama.remarks).toBe("nowszy");
+    expect(dedupeByShipmentId([newer, older]).rows[0].panorama.remarks).toBe("nowszy");
+  });
+
+  it("przy remisie dat zachowuje PIERWSZE wystapienie jako reprezentanta", () => {
     const first = { panorama: panoramaRow({ shipmentId: "1001", remarks: "pierwszy" }), sherloc: null };
     const second = { panorama: panoramaRow({ shipmentId: "1001", remarks: "drugi" }), sherloc: null };
 

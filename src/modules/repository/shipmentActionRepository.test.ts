@@ -89,7 +89,7 @@ describe("shipmentActionRepository", () => {
   });
 
   describe("pruneShipmentActions", () => {
-    it("ponowny import tego samego dnia: usuwa tylko wiersze z INNA data niz dzisiejsza", async () => {
+    it("usuwa tylko wpisy STARSZE niz najstarsza data w imporcie", async () => {
       const builder = createQueryBuilderMock({ data: null });
       supabase.from.mockReturnValueOnce(builder);
 
@@ -97,16 +97,16 @@ describe("shipmentActionRepository", () => {
 
       expect(supabase.from).toHaveBeenCalledWith("shipment_actions");
       expect(builder.delete).toHaveBeenCalled();
-      expect(builder.neq).toHaveBeenCalledWith("shipment_date", "2026-07-23");
+      expect(builder.lt).toHaveBeenCalledWith("shipment_date", "2026-07-23");
     });
 
-    it("import nastepnego dnia: wywolanie z nowa data usuwa wpisy sprzed niej (ten sam mechanizm, inny argument)", async () => {
+    it("inna najstarsza data -> ten sam mechanizm, inny argument", async () => {
       const builder = createQueryBuilderMock({ data: null });
       supabase.from.mockReturnValueOnce(builder);
 
       await pruneShipmentActions("2026-07-24");
 
-      expect(builder.neq).toHaveBeenCalledWith("shipment_date", "2026-07-24");
+      expect(builder.lt).toHaveBeenCalledWith("shipment_date", "2026-07-24");
     });
 
     it("blad Supabase -> funkcja rzuca", async () => {

@@ -3,7 +3,7 @@ import { shipment } from "../../test/fixtures";
 import { summarize } from "./summarize";
 
 describe("summarize", () => {
-  it("liczy bledy/rekordy (totalRows, matchedRows, unmatchedRows, unmappedRows, todayRows)", () => {
+  it("liczy bledy/rekordy (totalRows, matchedRows, unmatchedRows, unmappedRows, resultRows)", () => {
     const result = summarize({
       totalRows: 10,
       matchedRows: 8,
@@ -18,7 +18,7 @@ describe("summarize", () => {
     expect(result.matchedRows).toBe(8);
     expect(result.unmatchedRows).toBe(2);
     expect(result.unmappedRows).toBe(1);
-    expect(result.todayRows).toBe(2);
+    expect(result.resultRows).toBe(2);
     expect(result.panoramaFilename).toBe("panorama.xlsx");
     expect(result.sherlocFilename).toBe("sherloc.xlsx");
   });
@@ -69,6 +69,6 @@ describe("summarize", () => {
     });
 
     expect(result.groupCounts).toEqual({ P1: 0, P2: 0, P3: 0, COY004: 0 });
-    expect(result.todayRows).toBe(0);
+    expect(result.resultRows).toBe(0);
   });
 });

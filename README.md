@@ -110,8 +110,8 @@ Walidacja (pliki wybrane, format czytelny)
   → Parser (surowe kolumny → typowane wiersze, BEZ wiedzy o trasach)
   → Normalizacja (klucz joina, daty, liczby)
   → Join (Panorama.Shipment ID = Sherloc.HWB No)
-  → Filtrowanie dat (tylko dzisiejszy Last Phy Cp dt)
-  → Deduplikacja po Shipment ID (jeden wiersz, liczba wystąpień w polu "wystapilo")
+  → Deduplikacja po Shipment ID (wiersz z najnowszym skanem, liczba wystąpień w polu "wystapilo")
+  → Reguła 15 minut (pomija przesyłki z ostatnim skanem w ciągu 15 min przed godziną wpisaną przy imporcie; starsze — także z poprzednich dni — zostają)
   → Mapowanie tras (Chute ID → Trasa → Grupa, przez tabelę routes)
   → Przypisanie sortującego (jawnie z routes, fallback: 3. litera trasy)
   → Podsumowanie (liczniki, do wglądu przed zapisem)
@@ -267,13 +267,13 @@ pamięci z `Shipment[]` przy renderowaniu (`SorterTable.tsx`).
 (optymistyczny update w UI, `upsert` po `(shipment_id, shipment_date)`,
 revert w UI jeśli zapis się nie powiedzie).
 
-**Retencja — brak historii**: aplikacja pracuje wyłącznie na bieżącym
-dniu, więc po każdym zaakceptowanym imporcie `ImportScreen` wywołuje
-`pruneShipmentActions(dzisiaj)` (best-effort — błąd nie maskuje udanego
-zapisu `shipments`), które usuwa wpisy z `shipment_date` różnym od
-dzisiejszego. Pierwsze wywołanie danego dnia realnie czyści wczorajsze
-wpisy; kolejne wywołania tego samego dnia (ponowny import) są no-opem,
-więc dzisiejszy stan „Obsłużono” przetrwa.
+**Retencja**: od 2026-09-25 import zachowuje starsze przesyłki (także z
+poprzednich dni), więc po każdym zaakceptowanym imporcie `ImportScreen`
+wywołuje `pruneShipmentActions(najstarsza data w imporcie)` (best-effort —
+błąd nie maskuje udanego zapisu `shipments`), które usuwa tylko wpisy z
+`shipment_date` STARSZYM niż najstarsza przesyłka w raporcie. Oznaczenie
+„Obsłużono” przetrwa więc każdy ponowny import, dopóki raport zawiera
+przesyłki z jego dnia.
 
 ## Struktura katalogów
 

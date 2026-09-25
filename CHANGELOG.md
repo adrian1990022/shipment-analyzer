@@ -5,6 +5,28 @@ stanu aplikacji. Każdy wpis tutaj odpowiada jednemu commitowi w gita
 (`git log` pokaże dokładny diff; `git checkout <hash> -- .` albo
 `git revert <hash>` pozwala się cofnąć do/po danej zmianie).
 
+## 2026-09-25 — Import: starsze przesyłki zostają, reguła 15 minut
+
+- **Zniesiony filtr „tylko dzisiaj”** (`dateFilter/filterToday.ts`
+  usunięty). Przesyłki z poprzednich dni zostają w raporcie — na prośbę
+  Adriana, będą wykorzystywane.
+- **Reguła 15 minut** (`dateFilter/filterByScanCutoff.ts`): na ekranie
+  Import nowe pole „Godzina raportu” (nad wyborem plików, domyślnie
+  bieżąca godzina). Pomijane są przesyłki z ostatnim skanem w ciągu 15 min
+  przed tą godziną **albo później**; wszystko starsze zostaje. Przesyłki
+  bez daty ostatniego skanu nadal są pomijane (nie da się ocenić reguły).
+  Podsumowanie importu pokazuje obie liczby pominiętych.
+- **Deduplikacja**: reprezentantem Shipment ID jest teraz wiersz z
+  **najnowszym** skanem (wcześniej pierwszy w pliku), bo reguła 15 minut
+  dotyczy ostatniego skanu. Kolejność: deduplikacja → reguła 15 minut.
+- **Retencja „Obsłużono”**: `pruneShipmentActions` usuwa tylko wpisy
+  starsze niż najstarsza przesyłka w imporcie (wcześniej: wszystko sprzed
+  dzisiaj — przy zachowanych starszych przesyłkach kasowałoby ich
+  oznaczenia). Przesyłka, która dostanie nowy skan w nowym dniu, ma nowy
+  klucz `(shipment_id, shipment_date)` i wraca jako nieobsłużona.
+- `ImportSummary.todayRows` → `resultRows` (w bazie dalej kolumna
+  `imports.today_rows`) + `recentSkippedRows`, `noDateRows`, `cutoffAt`.
+
 ## 2026-09-25 — „Dubel” Chute ID: jedna brama → kilka tras
 
 - Decyzja Adriana (opcja A): jeden Chute ID może być przypisany do kilku
