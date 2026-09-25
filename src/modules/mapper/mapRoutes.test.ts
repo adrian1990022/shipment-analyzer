@@ -26,6 +26,23 @@ describe("mapRoutes", () => {
     expect(unmappedRowCount).toBe(0);
   });
 
+  it("dubel: Chute ID przypisany do kilku tras -> przesylka trafia na kazda z nich", () => {
+    const rows = [joined({ chuteId: "P1R01" })];
+    const routes = [
+      routeRef({ id: 1, chuteId: "P1R01", trasa: "WAEX", grupa: "P1" }),
+      routeRef({ id: 2, chuteId: "P1R01", trasa: "WAEA", grupa: "P3" }),
+    ];
+
+    const { shipments, unmappedRowCount } = mapRoutes(rows, routes, new Map(), new Map());
+
+    expect(shipments.map((s) => [s.trasa, s.grupa])).toEqual([
+      ["WAEX", "P1"],
+      ["WAEA", "P3"],
+    ]);
+    expect(shipments[0].shipmentId).toBe(shipments[1].shipmentId);
+    expect(unmappedRowCount).toBe(0);
+  });
+
   it("brak trasy (Chute ID spoza tabeli routes) -> rekord pomijany, zliczony jako unmapped", () => {
     const rows = [joined({ chuteId: "NIEZNANY" })];
 

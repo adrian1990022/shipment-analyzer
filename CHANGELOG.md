@@ -5,6 +5,23 @@ stanu aplikacji. Każdy wpis tutaj odpowiada jednemu commitowi w gita
 (`git log` pokaże dokładny diff; `git checkout <hash> -- .` albo
 `git revert <hash>` pozwala się cofnąć do/po danej zmianie).
 
+## 2026-09-25 — „Dubel” Chute ID: jedna brama → kilka tras
+
+- Decyzja Adriana (opcja A): jeden Chute ID może być przypisany do kilku
+  tras; przesyłka z takiej bramy trafia przy imporcie na **każdą** z nich
+  (`mapRoutes` tworzy osobny rekord `Shipment` per trasa, ten sam
+  `shipmentId` — więc „Obsłużono” jest wspólne dla wszystkich kopii, także
+  w kurier_appp). Liczniki grup/importu liczą każdą kopię.
+- Migracja `0010_routes_dubel_chute_id.sql`: `unique(chute_id)` →
+  `unique(chute_id, trasa)`; `upsertRoute` robi `onConflict` na tej
+  parze. **Musi być uruchomiona przed wdrożeniem kodu** (inaczej zapis
+  trasy zwraca błąd).
+- „Dane referencyjne”: wiersze dubla podświetlone na czerwono
+  (`--dubel-bg` + czerwony pasek), liczone po wszystkich trasach
+  (nie tylko po aktywnym filtrze grupy) tym samym kluczem co Mapper.
+- Karty przesyłek: klucz React `shipmentId|trasa` (ta sama przesyłka może
+  być dwa razy na liście P2/COY004).
+
 ## 2026-09-25 — Karty przesyłek zamiast tabeli + wyraźniejsze „Obsłużono”
 
 - `SorterTable`: tabela z 12 kolumnami zastąpiona **kartami** (wzorem

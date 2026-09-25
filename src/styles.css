@@ -15,6 +15,7 @@
      ciemnym (przegladarka sama przyciemnia strone) zlewalo sie z tlem
      karty. Dodatkowo karta ma zielony pasek i napis, ktore nie znikaja. */
   --handled-bg: #bbf7d0;
+  --dubel-bg: #fecaca;
   --warning-bg: #fffbeb;
   --warning-border: #fde68a;
   --table-header-bg: #f1f5f9;
@@ -656,4 +657,18 @@ tbody tr.row-handled:hover {
 
 .shipment-card--handled .shipment-card-status {
   color: var(--success);
+}
+
+/* "Dubel" w Dane referencyjne: ten sam Chute ID przypisany do kilku tras.
+   Wyrazny czerwony (nie prawie bialy) + pasek z lewej, zeby bylo widac
+   takze w telefonach z wymuszonym trybem ciemnym. */
+tbody tr.row-dubel,
+tbody tr.row-dubel:nth-child(even),
+tbody tr.row-dubel:hover {
+  background: var(--dubel-bg);
+}
+
+tbody tr.row-dubel td:first-child {
+  box-shadow: inset 4px 0 0 var(--danger);
+  font-weight: 600;
 }

@@ -50,7 +50,7 @@ describe("routesRepository", () => {
 
       expect(builder.upsert).toHaveBeenCalledWith(
         { chute_id: "P1R02", trasa: "WAEF", grupa: "P1" },
-        { onConflict: "chute_id" }
+        { onConflict: "chute_id,trasa" }
       );
     });
 

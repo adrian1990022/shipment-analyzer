@@ -146,7 +146,11 @@ export function SorterTable({
           const shipmentDate = toLocalDateKey(s.lastPhyCpDt);
           const isHandled = isShipmentHandled(s, handledMap);
           return (
-            <article key={s.shipmentId} className={`shipment-card${isHandled ? " shipment-card--handled" : ""}`}>
+            <article
+              // Klucz z trasa: przy dublu Chute ID ta sama przesylka moze byc
+              // na liscie dwa razy (P2/COY004 lacza kilka tras).
+              key={`${s.shipmentId}|${s.trasa}`}
+              className={`shipment-card${isHandled ? " shipment-card--handled" : ""}`}>
               <div className="shipment-card-head">
                 <span className="shipment-card-id">
                   {showTrasaColumn && <span className="shipment-card-trasa">{s.trasa}</span>}

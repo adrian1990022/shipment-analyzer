@@ -46,7 +46,7 @@ export async function upsertRoute(input: {
       trasa: input.trasa,
       grupa: input.grupa,
     },
-    { onConflict: "chute_id" }
+    { onConflict: "chute_id,trasa" }
   );
   if (error) {
     reportError(error, { module: "routesRepository", stage: "upsertRoute" });

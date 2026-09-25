@@ -31,9 +31,16 @@ export function mapRoutes(
   occurrenceCounts: Map<string, number>,
   sorterNameByTrasa: Map<string, string>
 ): MapResult {
-  const routeByChuteId = new Map<string, RouteRef>();
+  // Jeden Chute ID moze byc przypisany do KILKU tras ("dubel", decyzja
+  // Adriana 2026-09-25, opcja A): przesylka z takiej bramy trafia na
+  // KAZDA z tych tras -- osobny rekord Shipment per trasa, ten sam
+  // shipmentId (stan "Obsluzono" jest wiec wspolny dla wszystkich kopii).
+  const routesByChuteId = new Map<string, RouteRef[]>();
   for (const route of routes) {
-    routeByChuteId.set(normalizeJoinKey(route.chuteId), route);
+    const key = normalizeJoinKey(route.chuteId);
+    const list = routesByChuteId.get(key) ?? [];
+    list.push(route);
+    routesByChuteId.set(key, list);
   }
 
   const shipments: Shipment[] = [];
@@ -44,43 +51,42 @@ export function mapRoutes(
     const chuteId = panorama.chuteId.trim();
     const chuteKey = normalizeJoinKey(chuteId);
 
-    let trasa: string;
-    let grupa: Grupa;
+    let targets: { trasa: string; grupa: Grupa }[];
 
     if (chuteKey === COY004) {
-      trasa = COY004;
-      grupa = COY004;
+      targets = [{ trasa: COY004, grupa: COY004 }];
     } else {
-      const route = routeByChuteId.get(chuteKey);
-      if (!route) {
+      const matched = routesByChuteId.get(chuteKey);
+      if (!matched) {
         unmapped.add(chuteId);
         unmappedRowCount += 1;
         continue;
       }
-      trasa = route.trasa;
-      grupa = route.grupa;
+      targets = matched.map((route) => ({ trasa: route.trasa, grupa: route.grupa }));
     }
 
-    shipments.push({
-      shipmentId: panorama.shipmentId,
-      remarks: panorama.remarks,
-      hwx: panorama.hwx,
-      lastPhyCp: panorama.lastPhyCp,
-      lastPhyCpDt: parseFlexibleDate(panorama.lastPhyCpDt)?.toISOString() ?? null,
-      weightDimension: panorama.weightDimension,
-      shpCalcWgt: parseNumber(panorama.shpCalcWgt),
-      shpTotPcs: parseNumber(panorama.shpTotPcs),
-      consigneeName: panorama.consigneeName,
-      chuteId,
-      receiverName: sherloc?.receiverName ?? "",
-      rcvrAddr1: sherloc?.rcvrAddr1 ?? "",
-      rcvrPostcode: sherloc?.rcvrPostcode ?? "",
-      rcvrCity: sherloc?.rcvrCity ?? "",
-      trasa,
-      grupa,
-      sortujacy: sorterNameByTrasa.get(trasa) || sorterFromTrasa(trasa),
-      wystapilo: occurrenceCounts.get(panorama.shipmentId) ?? 1,
-    });
+    for (const { trasa, grupa } of targets) {
+      shipments.push({
+        shipmentId: panorama.shipmentId,
+        remarks: panorama.remarks,
+        hwx: panorama.hwx,
+        lastPhyCp: panorama.lastPhyCp,
+        lastPhyCpDt: parseFlexibleDate(panorama.lastPhyCpDt)?.toISOString() ?? null,
+        weightDimension: panorama.weightDimension,
+        shpCalcWgt: parseNumber(panorama.shpCalcWgt),
+        shpTotPcs: parseNumber(panorama.shpTotPcs),
+        consigneeName: panorama.consigneeName,
+        chuteId,
+        receiverName: sherloc?.receiverName ?? "",
+        rcvrAddr1: sherloc?.rcvrAddr1 ?? "",
+        rcvrPostcode: sherloc?.rcvrPostcode ?? "",
+        rcvrCity: sherloc?.rcvrCity ?? "",
+        trasa,
+        grupa,
+        sortujacy: sorterNameByTrasa.get(trasa) || sorterFromTrasa(trasa),
+        wystapilo: occurrenceCounts.get(panorama.shipmentId) ?? 1,
+      });
+    }
   }
 
   return { shipments, unmappedChuteIds: Array.from(unmapped), unmappedRowCount };

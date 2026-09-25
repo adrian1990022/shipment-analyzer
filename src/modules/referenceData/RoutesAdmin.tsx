@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { deleteRoute, fetchRoutes, upsertRoute } from "../repository/routesRepository";
 import { BackupPanel } from "../backup/BackupPanel";
 import type { RouteRef } from "../../types/shipment";
+import { normalizeJoinKey } from "../normalizer/normalize";
 
 const EMPTY_FORM = { chuteId: "", trasa: "", grupa: "P1" as "P1" | "P2" | "P3" };
 
@@ -26,6 +27,20 @@ export function RoutesAdmin() {
     });
     return sorted;
   }, [routes, grupaFilter, sortKey, sortAsc]);
+
+  // "Dubel": ten sam Chute ID przypisany do kilku tras (dozwolone od
+  // migracji 0010 -- przesylka trafia wtedy na kazda z tych tras). Liczone
+  // po WSZYSTKICH trasach, nie tylko przefiltrowanych, i po tym samym
+  // kluczu co w Mapperze (normalizeJoinKey), zeby podswietlenie zgadzalo
+  // sie z tym, co realnie zrobi import.
+  const dubelChuteKeys = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const r of routes) {
+      const key = normalizeJoinKey(r.chuteId);
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    return new Set([...counts].filter(([, n]) => n > 1).map(([key]) => key));
+  }, [routes]);
 
   function toggleSort(key: SortKey) {
     if (key === sortKey) {
@@ -82,6 +97,10 @@ export function RoutesAdmin() {
       <p className="hint">
         Mapowanie Chute ID → Trasa → Grupa kafelka. Chute ID = COY004 jest obslugiwane osobno i nie
         wymaga wpisu tutaj. Przypisanie sortującego do trasy zarządzasz w zakładce "Sortujący".
+      </p>
+      <p className="hint">
+        Ten sam Chute ID możesz przypisać do kilku tras — przesyłki z tej bramy trafią wtedy na
+        każdą z nich. Takie wiersze (dubel) są podświetlone na czerwono.
       </p>
 
       <form className="card" onSubmit={handleSubmit}>
@@ -146,7 +165,10 @@ export function RoutesAdmin() {
           </thead>
           <tbody>
             {visibleRoutes.map((r) => (
-              <tr key={r.id}>
+              <tr
+                key={r.id}
+                className={dubelChuteKeys.has(normalizeJoinKey(r.chuteId)) ? "row-dubel" : undefined}
+              >
                 <td>{r.chuteId}</td>
                 <td>{r.trasa}</td>
                 <td>{r.grupa}</td>
