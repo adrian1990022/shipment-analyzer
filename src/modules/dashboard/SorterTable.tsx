@@ -61,7 +61,9 @@ export function SorterTable({
   // Gdy tabela jest juz zawezona do jednej trasy, kolumna Trasa jest
   // redundantna -- widac ja na poprzednim kafelku (TrasaListView).
   const showTrasaColumn = !trasa;
-  const [sortKey, setSortKey] = useState<SortKey>(showTrasaColumn ? "trasa" : "consigneeName");
+  // Domyslnie po czasie skanu, najstarsze pierwsze (prosba Adriana
+  // 2026-09-25) -- klikniecie naglowka nadal zmienia sortowanie.
+  const [sortKey, setSortKey] = useState<SortKey>("lastPhyCpDt");
   const [sortAsc, setSortAsc] = useState(true);
 
   const rows = useMemo(() => {
@@ -69,13 +71,17 @@ export function SorterTable({
     let forSorter = shipmentsForSorter(inGroup, sortujacy);
     if (trasa) forSorter = shipmentsForTrasa(forSorter, trasa);
     const sorted = [...forSorter].sort((a, b) => {
+      // Obsluzone zawsze na samym dole, niezaleznie od wybranej kolumny
+      // sortowania -- na gorze zostaje to, czym trzeba sie jeszcze zajac.
+      const aHandled = isShipmentHandled(a, handledMap);
+      if (aHandled !== isShipmentHandled(b, handledMap)) return aHandled ? 1 : -1;
       // lastPhyCpDt to ISO string (albo null) -- porownanie leksykograficzne
       // ISO odpowiada porownaniu chronologicznemu, ?? "" zabezpiecza null.
       const cmp = (a[sortKey] ?? "").localeCompare(b[sortKey] ?? "");
       return sortAsc ? cmp : -cmp;
     });
     return sorted;
-  }, [shipments, grupa, sortujacy, trasa, sortKey, sortAsc]);
+  }, [shipments, grupa, sortujacy, trasa, sortKey, sortAsc, handledMap]);
 
   // Liczony nad "rows" -- dokladnie tym, co widac w tabeli -- wiec
   // automatycznie respektuje aktywne zawezenie (grupa/sortujacy/trasa) i

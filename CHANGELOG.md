@@ -5,6 +5,17 @@ stanu aplikacji. Każdy wpis tutaj odpowiada jednemu commitowi w gita
 (`git log` pokaże dokładny diff; `git checkout <hash> -- .` albo
 `git revert <hash>` pozwala się cofnąć do/po danej zmianie).
 
+## 2026-09-25 — Tabela przesyłek: sortowanie po czasie, obsłużone na dole
+
+- `SorterTable`: domyślne sortowanie po **Czas** (`lastPhyCpDt`, najstarsze
+  pierwsze) we wszystkich widokach tabeli (wcześniej Trasa albo Consignee
+  Name). Kliknięcie nagłówka nadal zmienia sortowanie.
+- Przesyłki oznaczone **„Obsłużono”** zawsze spadają na sam dół listy,
+  niezależnie od wybranej kolumny sortowania — i od razu po przełączeniu.
+- Stan „Obsłużono” jest od 2026-09-25 przełączany także z aplikacji
+  kurier_appp (kafelek „Przed wyjazdem”, przez jej funkcję serwerową z
+  kluczem `service_role` tego projektu) — ta sama tabela `shipment_actions`.
+
 ## 2026-07-31 — Sprint UX 1.1: czytelność i obsługa błędów
 
 Bez zmian w pipeline'ie biznesowym (Parser→Normalizer→Join→Date
