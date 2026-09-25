@@ -81,6 +81,17 @@ export function formatTimeHHmm(iso: string | null): string {
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
+// "HH:mm · DD.MM" -- godzina i data skanu na karcie przesylki (SorterTable,
+// 2026-09-25, jak w kafelku "Przed wyjazdem" w kurier_appp).
+export function formatTimeAndDate(iso: string | null): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  return `${formatTimeHHmm(iso)} · ${dd}.${mm}`;
+}
+
 // Jak formatTimeHHmm, ale zwraca date-only klucz (YYYY-MM-DD) w lokalnym
 // czasie -- uzywane jako "shipment_date" przy zapisie/odczycie
 // shipment_actions (Sprint UX 1.1).

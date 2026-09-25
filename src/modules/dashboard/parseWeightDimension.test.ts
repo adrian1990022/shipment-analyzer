@@ -11,6 +11,15 @@ describe("parseWeightDimension", () => {
     });
   });
 
+  it("dopisuje zero przed ulamkiem bez czesci calkowitej", () => {
+    expect(parseWeightDimension("< R > < .538 > < 16 X .5 X 24 >")).toEqual({
+      weightKg: "0.538",
+      lengthCm: "16",
+      heightCm: "0.5",
+      widthCm: "24",
+    });
+  });
+
   it("zwraca null gdy jest mniej niz 3 segmenty", () => {
     expect(parseWeightDimension("< R > < 3.05 >")).toBeNull();
   });

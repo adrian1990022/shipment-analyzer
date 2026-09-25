@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { shipment } from "../../test/fixtures";
 import {
   buildHandledKey,
+  formatTimeAndDate,
   formatTimeHHmm,
   isSameLocalDay,
   isShipmentHandled,
@@ -112,6 +113,21 @@ describe("formatTimeHHmm", () => {
   it("dopelnia zerami godziny/minuty ponizej 10", () => {
     const iso = new Date(2026, 6, 23, 9, 5, 0).toISOString();
     expect(formatTimeHHmm(iso)).toBe("09:05");
+  });
+});
+
+describe("formatTimeAndDate", () => {
+  it("zwraca — dla null", () => {
+    expect(formatTimeAndDate(null)).toBe("—");
+  });
+
+  it("zwraca — dla niepoprawnego stringa", () => {
+    expect(formatTimeAndDate("nie-data")).toBe("—");
+  });
+
+  it("formatuje HH:mm · DD.MM w czasie lokalnym", () => {
+    const iso = new Date(2026, 8, 5, 4, 34, 0).toISOString();
+    expect(formatTimeAndDate(iso)).toBe("04:34 · 05.09");
   });
 });
 

@@ -20,6 +20,11 @@ export function parseWeightDimension(raw: string): ParsedWeightDimension | null 
   const dims = segments[2].split(/x/i).map((d) => d.trim());
   if (dims.length !== 3 || !weightKg || dims.some((d) => d === "")) return null;
 
-  const [lengthCm, heightCm, widthCm] = dims;
-  return { weightKg, lengthCm, heightCm, widthCm };
+  const [lengthCm, heightCm, widthCm] = dims.map(withLeadingZero);
+  return { weightKg: withLeadingZero(weightKg), lengthCm, heightCm, widthCm };
+}
+
+// Panorama zapisuje ulamki bez zera na poczatku (".538") -- dopisujemy je.
+function withLeadingZero(value: string): string {
+  return value.startsWith(".") ? `0${value}` : value;
 }

@@ -10,7 +10,11 @@
   --success: #16a34a;
   --warning: #f59e0b;
   --danger: #dc2626;
-  --handled-bg: #f0fdf4;
+  /* Tlo przesylki "Obsluzono" -- celowo wyrazniejsza zielen niz dawne
+     #f0fdf4: tamto bylo prawie biale i w telefonach z wymuszonym trybem
+     ciemnym (przegladarka sama przyciemnia strone) zlewalo sie z tlem
+     karty. Dodatkowo karta ma zielony pasek i napis, ktore nie znikaja. */
+  --handled-bg: #bbf7d0;
   --warning-bg: #fffbeb;
   --warning-border: #fde68a;
   --table-header-bg: #f1f5f9;
@@ -504,4 +508,138 @@ tbody tr.row-handled:hover {
 .handled-counter--complete {
   color: var(--success);
   border-color: var(--success);
+}
+
+/* Karty przesylek zamiast tabeli (SorterTable, 2026-09-25, wzorem kafelka
+   "Przed wyjazdem" w kurier_appp) -- mieszcza sie na ekranie telefonu. */
+.sort-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 12px;
+  font-size: 13px;
+}
+
+.sort-bar-label {
+  color: var(--muted);
+}
+
+.sort-button {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.sort-button--active {
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.shipment-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+}
+
+.shipment-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 6px solid var(--warning);
+  border-radius: 12px;
+  padding: 12px 14px;
+  box-shadow: var(--shadow-sm);
+  min-width: 0;
+}
+
+.shipment-card--handled {
+  background: var(--handled-bg);
+  border-color: var(--success);
+  border-left-color: var(--success);
+}
+
+.shipment-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  font-weight: 700;
+}
+
+.shipment-card-id {
+  overflow-wrap: anywhere;
+}
+
+.shipment-card-trasa {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: var(--table-header-bg);
+  font-size: 12px;
+}
+
+.shipment-card-time {
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.shipment-card-name {
+  margin-top: 4px;
+  font-weight: 600;
+}
+
+.shipment-card-addr {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.shipment-card-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 6px 12px;
+  margin: 10px 0;
+}
+
+.shipment-card-details dt {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.shipment-card-details dd {
+  margin: 0;
+  font-weight: 600;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.shipment-card-details .weight-dimension {
+  white-space: normal;
+  font-size: 13px;
+}
+
+.shipment-card-wide {
+  grid-column: 1 / -1;
+}
+
+.shipment-card-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.shipment-card-status {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.shipment-card--handled .shipment-card-status {
+  color: var(--success);
 }

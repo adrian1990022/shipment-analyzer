@@ -5,6 +5,23 @@ stanu aplikacji. Każdy wpis tutaj odpowiada jednemu commitowi w gita
 (`git log` pokaże dokładny diff; `git checkout <hash> -- .` albo
 `git revert <hash>` pozwala się cofnąć do/po danej zmianie).
 
+## 2026-09-25 — Karty przesyłek zamiast tabeli + wyraźniejsze „Obsłużono”
+
+- `SorterTable`: tabela z 12 kolumnami zastąpiona **kartami** (wzorem
+  kafelka „Przed wyjazdem” w kurier_appp) — mieszczą się na ekranie
+  telefonu, bez przewijania w bok. Na karcie: Shipment ID (+ trasa w
+  widokach bez poziomu trasy), godzina i data skanu (`HH:mm · DD.MM`,
+  nowe `formatTimeAndDate`), Consignee, ulica i miasto, Weight/Dimension
+  w osobnych liniach, Niezeskanowane, Total Pcs, Last CP, Remarks,
+  przełącznik „Obsłużono”. Sortowanie przeniesione z nagłówków kolumn na
+  przyciski „Sortuj: Czas / Consignee / Trasa”.
+- Kolor „Obsłużono”: `--handled-bg` z prawie białego `#f0fdf4` na
+  `#bbf7d0` + zielony pasek/obramowanie karty + napis „✓ Obsłużono”.
+  Powód: w telefonach z wymuszonym trybem ciemnym przeglądarka sama
+  przyciemnia stronę i stare, prawie białe tło było nie do odróżnienia
+  od zwykłej karty.
+- `parseWeightDimension` dopisuje zero przed ułamkiem (`.538` → `0.538`).
+
 ## 2026-09-25 — Tabela przesyłek: sortowanie po czasie, obsłużone na dole
 
 - `SorterTable`: domyślne sortowanie po **Czas** (`lastPhyCpDt`, najstarsze

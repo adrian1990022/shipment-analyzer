@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import type { Grupa, Shipment } from "../../types/shipment";
 import { shipmentsForSorter, shipmentsForTrasa, shipmentsInGrupa } from "./grouping";
 import { parseWeightDimension } from "./parseWeightDimension";
-import { formatTimeHHmm, isShipmentHandled, toLocalDateKey } from "../normalizer/normalize";
+import { formatTimeAndDate, isShipmentHandled, toLocalDateKey } from "../normalizer/normalize";
 
 type SortKey = "trasa" | "consigneeName" | "lastPhyCpDt";
 
@@ -103,6 +103,15 @@ export function SorterTable({
     }
   }
 
+  // Karty zamiast tabeli (2026-09-25, wzorem kafelka "Przed wyjazdem" w
+  // kurier_appp) -- tabela z 12 kolumnami nie miescila sie na telefonie.
+  // Naglowkow kolumn juz nie ma, wiec sortowanie przeszlo na przyciski.
+  const sortOptions: { key: SortKey; label: string }[] = [
+    { key: "lastPhyCpDt", label: "Czas" },
+    { key: "consigneeName", label: "Consignee" },
+    ...(showTrasaColumn ? [{ key: "trasa" as SortKey, label: "Trasa" }] : []),
+  ];
+
   return (
     <div className="screen">
       <button className="back" onClick={onBack}>
@@ -118,62 +127,69 @@ export function SorterTable({
           Obsłużono: {handledCount} / {total} przesyłek
         </div>
       )}
-      <table className="data-table">
-        <thead>
-          <tr>
-            {showTrasaColumn && (
-              <th className="sortable" onClick={() => toggleSort("trasa")}>
-                Trasa {sortKey === "trasa" && (sortAsc ? "↑" : "↓")}
-              </th>
-            )}
-            <th>Shipment ID</th>
-            <th className="sortable" onClick={() => toggleSort("consigneeName")}>
-              Consignee Name {sortKey === "consigneeName" && (sortAsc ? "↑" : "↓")}
-            </th>
-            <th>Ulica</th>
-            <th>Miasto</th>
-            <th>Weight / Dimension</th>
-            <th className="sortable" onClick={() => toggleSort("lastPhyCpDt")}>
-              Czas {sortKey === "lastPhyCpDt" && (sortAsc ? "↑" : "↓")}
-            </th>
-            <th>Last CP</th>
-            <th>Remarks</th>
-            <th>Niezeskanowane</th>
-            <th className="col-center">Total Pcs</th>
-            <th className="col-center">Obsłużono</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((s) => {
-            const shipmentDate = toLocalDateKey(s.lastPhyCpDt);
-            const isHandled = isShipmentHandled(s, handledMap);
-            return (
-              <tr key={s.shipmentId} className={isHandled ? "row-handled" : undefined}>
-                {showTrasaColumn && <td>{s.trasa}</td>}
-                <td>{s.shipmentId}</td>
-                <td>{s.consigneeName}</td>
-                <td>{s.rcvrAddr1}</td>
-                <td>{s.rcvrCity}</td>
-                <td>
-                  <WeightDimensionCell value={s.weightDimension} />
-                </td>
-                <td>{formatTimeHHmm(s.lastPhyCpDt)}</td>
-                <td>{s.lastPhyCp}</td>
-                <td>{s.remarks}</td>
-                <td>{s.wystapilo}</td>
-                <td className="col-center">{s.shpTotPcs ?? ""}</td>
-                <td className="col-center">
-                  <HandledSwitch
-                    checked={isHandled}
-                    disabled={!shipmentDate}
-                    onChange={() => onToggleHandled(s)}
-                  />
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+      {total > 0 && (
+        <div className="sort-bar">
+          <span className="sort-bar-label">Sortuj:</span>
+          {sortOptions.map(({ key, label }) => (
+            <button
+              key={key}
+              className={`sort-button${sortKey === key ? " sort-button--active" : ""}`}
+              onClick={() => toggleSort(key)}
+            >
+              {label} {sortKey === key && (sortAsc ? "↑" : "↓")}
+            </button>
+          ))}
+        </div>
+      )}
+      <div className="shipment-cards">
+        {rows.map((s) => {
+          const shipmentDate = toLocalDateKey(s.lastPhyCpDt);
+          const isHandled = isShipmentHandled(s, handledMap);
+          return (
+            <article key={s.shipmentId} className={`shipment-card${isHandled ? " shipment-card--handled" : ""}`}>
+              <div className="shipment-card-head">
+                <span className="shipment-card-id">
+                  {showTrasaColumn && <span className="shipment-card-trasa">{s.trasa}</span>}
+                  {s.shipmentId}
+                </span>
+                <span className="shipment-card-time">{formatTimeAndDate(s.lastPhyCpDt)}</span>
+              </div>
+              <div className="shipment-card-name">{s.consigneeName || "—"}</div>
+              <div className="shipment-card-addr">{[s.rcvrAddr1, s.rcvrCity].filter(Boolean).join(", ") || "—"}</div>
+              <dl className="shipment-card-details">
+                <div>
+                  <dt>Weight / Dimension</dt>
+                  <dd>
+                    <WeightDimensionCell value={s.weightDimension} />
+                  </dd>
+                </div>
+                <div>
+                  <dt>Niezeskanowane</dt>
+                  <dd>{s.wystapilo}</dd>
+                </div>
+                <div>
+                  <dt>Total Pcs</dt>
+                  <dd>{s.shpTotPcs ?? "—"}</dd>
+                </div>
+                <div>
+                  <dt>Last CP</dt>
+                  <dd>{s.lastPhyCp || "—"}</dd>
+                </div>
+                {s.remarks && (
+                  <div className="shipment-card-wide">
+                    <dt>Remarks</dt>
+                    <dd>{s.remarks}</dd>
+                  </div>
+                )}
+              </dl>
+              <div className="shipment-card-foot">
+                <HandledSwitch checked={isHandled} disabled={!shipmentDate} onChange={() => onToggleHandled(s)} />
+                <span className="shipment-card-status">{isHandled ? "✓ Obsłużono" : "Obsłużono"}</span>
+              </div>
+            </article>
+          );
+        })}
+      </div>
       {rows.length === 0 && <p className="hint">Brak przesylek.</p>}
     </div>
   );
