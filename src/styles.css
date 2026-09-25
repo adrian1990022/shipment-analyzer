@@ -603,9 +603,27 @@ tbody tr.row-handled:hover {
 
 .shipment-card-details {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  grid-template-columns: 1fr 1fr;
   gap: 6px 12px;
   margin: 10px 0;
+}
+
+/* Niezeskanowane nad Total Pcs, w kolumnie obok wymiarow. */
+.shipment-card-stack {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+}
+
+/* Last CP (krotki kod) + Remarks w jednym wierszu, Remarks bierze reszte. */
+.shipment-card-row {
+  display: flex;
+  margin-top: 0;
+}
+
+.shipment-card-grow {
+  flex: 1;
+  min-width: 0;
 }
 
 .shipment-card-details dt {
@@ -623,10 +641,6 @@ tbody tr.row-handled:hover {
 .shipment-card-details .weight-dimension {
   white-space: normal;
   font-size: 13px;
-}
-
-.shipment-card-wide {
-  grid-column: 1 / -1;
 }
 
 .shipment-card-foot {

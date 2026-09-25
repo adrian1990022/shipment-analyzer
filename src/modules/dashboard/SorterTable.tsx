@@ -156,6 +156,8 @@ export function SorterTable({
               </div>
               <div className="shipment-card-name">{s.consigneeName || "—"}</div>
               <div className="shipment-card-addr">{[s.rcvrAddr1, s.rcvrCity].filter(Boolean).join(", ") || "—"}</div>
+              {/* Uklad zwarty: wymiary | (Niezeskanowane nad Total Pcs), nizej
+                  Last CP (zawsze 2-literowy kod) obok Remarks. */}
               <dl className="shipment-card-details">
                 <div>
                   <dt>Weight / Dimension</dt>
@@ -163,20 +165,24 @@ export function SorterTable({
                     <WeightDimensionCell value={s.weightDimension} />
                   </dd>
                 </div>
-                <div>
-                  <dt>Niezeskanowane</dt>
-                  <dd>{s.wystapilo}</dd>
+                <div className="shipment-card-stack">
+                  <div>
+                    <dt>Niezeskanowane</dt>
+                    <dd>{s.wystapilo}</dd>
+                  </div>
+                  <div>
+                    <dt>Total Pcs</dt>
+                    <dd>{s.shpTotPcs ?? "—"}</dd>
+                  </div>
                 </div>
-                <div>
-                  <dt>Total Pcs</dt>
-                  <dd>{s.shpTotPcs ?? "—"}</dd>
-                </div>
+              </dl>
+              <dl className="shipment-card-details shipment-card-row">
                 <div>
                   <dt>Last CP</dt>
                   <dd>{s.lastPhyCp || "—"}</dd>
                 </div>
                 {s.remarks && (
-                  <div className="shipment-card-wide">
+                  <div className="shipment-card-grow">
                     <dt>Remarks</dt>
                     <dd>{s.remarks}</dd>
                   </div>
