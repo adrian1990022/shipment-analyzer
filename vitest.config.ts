@@ -25,6 +25,8 @@ export default defineConfig({
         "src/modules/repository/**",
         "src/modules/backup/**",
         "src/modules/import/pipeline.ts",
+        "src/modules/import/analyzeImport.ts",
+        "src/modules/import/importPayload.ts",
       ],
       exclude: ["**/*.test.ts", "**/*.tsx"],
       thresholds: {

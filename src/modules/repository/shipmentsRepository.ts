@@ -1,52 +1,11 @@
 import { supabase } from "../../lib/supabaseClient";
 import { reportError } from "../monitoring/reportError";
-import type { Grupa, ImportSummary, Shipment } from "../../types/shipment";
+import type { ImportResult, Shipment } from "../../types/shipment";
+import { buildImportPayload, type ShipmentInsertRow } from "../import/importPayload";
 
-interface ShipmentRow {
-  shipment_id: string;
-  remarks: string | null;
-  hwx: string | null;
-  last_phy_cp: string | null;
-  last_phy_cp_dt: string | null;
-  weight_dimension: string | null;
-  shp_calc_wgt: number | null;
-  shp_tot_pcs: number | null;
-  consignee_name: string | null;
-  chute_id: string | null;
-  receiver_name: string | null;
-  rcvr_addr1: string | null;
-  rcvr_postcode: string | null;
-  rcvr_city: string | null;
-  trasa: string;
-  grupa: Grupa;
-  sortujacy: string;
-  wystapilo: number;
-  import_id: number | null;
-}
-
-function toRow(shipment: Shipment, importId: number | null): ShipmentRow {
-  return {
-    shipment_id: shipment.shipmentId,
-    remarks: shipment.remarks || null,
-    hwx: shipment.hwx || null,
-    last_phy_cp: shipment.lastPhyCp || null,
-    last_phy_cp_dt: shipment.lastPhyCpDt,
-    weight_dimension: shipment.weightDimension || null,
-    shp_calc_wgt: shipment.shpCalcWgt,
-    shp_tot_pcs: shipment.shpTotPcs,
-    consignee_name: shipment.consigneeName || null,
-    chute_id: shipment.chuteId || null,
-    receiver_name: shipment.receiverName || null,
-    rcvr_addr1: shipment.rcvrAddr1 || null,
-    rcvr_postcode: shipment.rcvrPostcode || null,
-    rcvr_city: shipment.rcvrCity || null,
-    trasa: shipment.trasa,
-    grupa: shipment.grupa,
-    sortujacy: shipment.sortujacy,
-    wystapilo: shipment.wystapilo,
-    import_id: importId,
-  };
-}
+// Wiersz odczytany z tabeli shipments -- ksztalt zapisu (importPayload.ts)
+// plus import_id nadawane przez baze.
+type ShipmentRow = ShipmentInsertRow & { import_id: number | null };
 
 function fromRow(row: ShipmentRow & { id: number }): Shipment {
   return {
@@ -85,53 +44,15 @@ export async function fetchShipments(): Promise<Shipment[]> {
   return (data ?? []).map((row) => fromRow(row as ShipmentRow & { id: number }));
 }
 
-// Zastepuje CALA zawartosc tabeli shipments nowym importem (zgodnie z
-// regula "kazdy import zastepuje poprzednie dane"). Zapisuje tez wpis
-// w imports (metadane, bez tresci raportow) i wiaze shipments z nim.
-export async function replaceShipments(
-  shipments: Shipment[],
-  summary: ImportSummary
-): Promise<void> {
-  const { data: importRow, error: importError } = await supabase
-    .from("imports")
-    .insert({
-      panorama_filename: summary.panoramaFilename,
-      sherloc_filename: summary.sherlocFilename,
-      total_rows: summary.totalRows,
-      matched_rows: summary.matchedRows,
-      unmatched_rows: summary.unmatchedRows,
-      unmapped_rows: summary.unmappedRows,
-      today_rows: summary.resultRows,
-      group_counts: summary.groupCounts,
-    })
-    .select("id")
-    .single();
-
-  if (importError) {
-    reportError(importError, { module: "shipmentsRepository", stage: "replaceShipments:imports.insert" });
-    throw importError;
+// Zapisuje zaakceptowany import JEDNYM wywolaniem funkcji bazy
+// import_shipments (migracja 0011): wpis w imports + podmiana CALEJ
+// zawartosci shipments + czyszczenie starych shipment_actions -- w jednej
+// transakcji, wszystko albo nic. Zwraca id nowego wpisu w imports.
+export async function saveImport(result: ImportResult): Promise<number> {
+  const { data, error } = await supabase.rpc("import_shipments", buildImportPayload(result));
+  if (error) {
+    reportError(error, { module: "shipmentsRepository", stage: "saveImport" });
+    throw error;
   }
-  const importId = (importRow as { id: number }).id;
-
-  // Usun poprzednie dane -- "id >= 0" dopasowuje kazdy wiersz (bigint identity).
-  const { error: deleteError } = await supabase.from("shipments").delete().gte("id", 0);
-  if (deleteError) {
-    reportError(deleteError, { module: "shipmentsRepository", stage: "replaceShipments:delete" });
-    throw deleteError;
-  }
-
-  if (shipments.length === 0) return;
-
-  const rows = shipments.map((s) => toRow(s, importId));
-
-  // Insert w partiach, zeby nie przekroczyc limitow requestu przy duzych plikach.
-  const chunkSize = 500;
-  for (let i = 0; i < rows.length; i += chunkSize) {
-    const chunk = rows.slice(i, i + chunkSize);
-    const { error: insertError } = await supabase.from("shipments").insert(chunk);
-    if (insertError) {
-      reportError(insertError, { module: "shipmentsRepository", stage: "replaceShipments:insert" });
-      throw insertError;
-    }
-  }
+  return data as number;
 }

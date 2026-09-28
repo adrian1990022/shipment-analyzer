@@ -99,8 +99,8 @@ raportem pokrycia (patrz sekcja [Testy](#testy)).
   `shipments`** — admin pełny dostęp, ale zwykły zalogowany `user`
   (operator na hali) też może czytać/tworzyć/aktualizować (nie tylko
   czytać, jak przy `shipments`), bo to on na co dzień przełącza Switch.
-  Usuwanie zostaje tylko dla admina — `pruneShipmentActions` jest
-  wołane wyłącznie z `ImportScreen`, który i tak wymaga roli admina.
+  Usuwanie zostaje tylko dla admina — czyszczenie starych wpisów robi
+  funkcja bazy `import_shipments` (import wymaga roli admina).
 
 ## Pipeline
 
@@ -116,13 +116,26 @@ Walidacja (pliki wybrane, format czytelny)
   → Przypisanie sortującego (jawnie z routes, fallback: 3. litera trasy)
   → Podsumowanie (liczniki, do wglądu przed zapisem)
   → [akceptacja użytkownika]
-  → Zapis do Supabase (repository.replaceShipments)
+  → Zapis: JEDNO wywołanie funkcji bazy import_shipments (migracja 0011) — wpis w imports + podmiana shipments + czyszczenie shipment_actions, w jednej transakcji (wszystko albo nic)
   → Dashboard (czyta z Supabase)
 ```
 
-Do momentu akceptacji nic nie jest zapisywane — `runImportPipeline`
-(`src/modules/import/pipeline.ts`) działa wyłącznie w pamięci (poza
-odczytem tabeli `routes`, potrzebnym do mapowania).
+Do momentu akceptacji nic nie jest zapisywane — analiza
+(`src/modules/import/analyzeImport.ts`) działa wyłącznie w pamięci. Jest
+CZYSTA (bez Supabase): dane referencyjne (`routes` + przypisania
+sortujących) dostaje przez wstrzykniętą funkcję — w shipment ładuje je
+`pipeline.ts` z własnej bazy. Argumenty zapisu buduje
+`src/modules/import/importPayload.ts`.
+
+**Kopia w kurier_appp**: panel admina kuriera (Import danych → Przesyłki)
+wgrywa raporty tą samą logiką — ma WYGENEROWANĄ kopię modułów analizy
+(`kurier_appp/pwa/src/shipmentPipeline/`) i zapisuje przez swoją funkcję
+serwerową (`api/shipment-import.js`, kluczem service_role po sprawdzeniu
+roli admina) tą samą funkcją bazy `import_shipments`. **Po każdej zmianie
+modułów analizy (parser, normalizer, joiner, dateFilter, dedup, mapper,
+analyzer, import/analyzeImport, import/importPayload, types) uruchom w
+kurier_appp/pwa: `node scripts/sync-shipment-pipeline.mjs`** — inaczej
+import z kuriera będzie działał po staremu.
 
 ## Testy
 
@@ -250,7 +263,7 @@ Nad tabelą widać też licznik `Obsłużono: X / Y przesyłek`, liczony nad
 aktualnie widocznym (przefiltrowanym/posortowanym) zestawem wierszy.
 
 Stan **nie** jest zapisywany w tabeli `shipments` — ta jest nadpisywana
-w całości przy każdym imporcie (`replaceShipments`: delete-all +
+w całości przy każdym imporcie (`import_shipments`: delete-all +
 insert), więc przetrwanie stanu po reimporcie tego samego dnia
 wymagałoby dodatkowej logiki scalania. Zamiast tego osobna tabela
 `shipment_actions` (`id`, `shipment_id`, `shipment_date`, `handled`,
@@ -268,10 +281,10 @@ pamięci z `Shipment[]` przy renderowaniu (`SorterTable.tsx`).
 revert w UI jeśli zapis się nie powiedzie).
 
 **Retencja**: od 2026-09-25 import zachowuje starsze przesyłki (także z
-poprzednich dni), więc po każdym zaakceptowanym imporcie `ImportScreen`
-wywołuje `pruneShipmentActions(najstarsza data w imporcie)` (best-effort —
-błąd nie maskuje udanego zapisu `shipments`), które usuwa tylko wpisy z
-`shipment_date` STARSZYM niż najstarsza przesyłka w raporcie. Oznaczenie
+poprzednich dni), więc każdy zaakceptowany import (funkcja bazy
+`import_shipments`, parametr `p_prune_before` = najstarsza data w imporcie
+albo dzisiaj) usuwa tylko wpisy z `shipment_date` STARSZYM niż najstarsza
+przesyłka w raporcie — w tej samej transakcji co zapis. Oznaczenie
 „Obsłużono” przetrwa więc każdy ponowny import, dopóki raport zawiera
 przesyłki z jego dnia.
 

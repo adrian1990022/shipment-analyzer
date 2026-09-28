@@ -57,18 +57,3 @@ export async function setHandled(shipmentId: string, shipmentDate: string, handl
     throw error;
   }
 }
-
-// Usuwa wpisy z dni STARSZYCH niz oldestDateKey -- wolane po kazdym udanym
-// imporcie (ImportScreen) z data najstarszej przesylki w tym imporcie (albo
-// dzisiejsza, jesli jest wczesniejsza). Od 2026-09-25 import zachowuje
-// starsze przesylki (takze z poprzednich dni), wiec nie wolno juz kasowac
-// wszystkiego sprzed dzisiaj -- przesylki widoczne w raporcie stracilyby
-// oznaczenie "Obsluzono". Wpis nigdy nie jest kasowany, dopoki raport
-// zawiera przesylki z jego dnia.
-export async function pruneShipmentActions(oldestDateKey: string): Promise<void> {
-  const { error } = await supabase.from("shipment_actions").delete().lt("shipment_date", oldestDateKey);
-  if (error) {
-    reportError(error, { module: "shipmentActionRepository", stage: "pruneShipmentActions" });
-    throw error;
-  }
-}

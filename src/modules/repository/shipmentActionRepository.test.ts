@@ -5,7 +5,7 @@ import { buildHandledKey } from "../normalizer/normalize";
 const { supabase } = vi.hoisted(() => ({ supabase: { from: vi.fn(), rpc: vi.fn() } }));
 vi.mock("../../lib/supabaseClient", () => ({ supabase }));
 
-const { buildHandledMap, fetchHandledMap, setHandled, pruneShipmentActions } = await import(
+const { buildHandledMap, fetchHandledMap, setHandled } = await import(
   "./shipmentActionRepository"
 );
 
@@ -85,33 +85,6 @@ describe("shipmentActionRepository", () => {
     it("blad Supabase -> funkcja rzuca", async () => {
       supabase.from.mockReturnValueOnce(createQueryBuilderMock({ error: new Error("upsert failed") }));
       await expect(setHandled("1001", "2026-07-23", true)).rejects.toThrow("upsert failed");
-    });
-  });
-
-  describe("pruneShipmentActions", () => {
-    it("usuwa tylko wpisy STARSZE niz najstarsza data w imporcie", async () => {
-      const builder = createQueryBuilderMock({ data: null });
-      supabase.from.mockReturnValueOnce(builder);
-
-      await pruneShipmentActions("2026-07-23");
-
-      expect(supabase.from).toHaveBeenCalledWith("shipment_actions");
-      expect(builder.delete).toHaveBeenCalled();
-      expect(builder.lt).toHaveBeenCalledWith("shipment_date", "2026-07-23");
-    });
-
-    it("inna najstarsza data -> ten sam mechanizm, inny argument", async () => {
-      const builder = createQueryBuilderMock({ data: null });
-      supabase.from.mockReturnValueOnce(builder);
-
-      await pruneShipmentActions("2026-07-24");
-
-      expect(builder.lt).toHaveBeenCalledWith("shipment_date", "2026-07-24");
-    });
-
-    it("blad Supabase -> funkcja rzuca", async () => {
-      supabase.from.mockReturnValueOnce(createQueryBuilderMock({ error: new Error("delete failed") }));
-      await expect(pruneShipmentActions("2026-07-23")).rejects.toThrow("delete failed");
     });
   });
 });

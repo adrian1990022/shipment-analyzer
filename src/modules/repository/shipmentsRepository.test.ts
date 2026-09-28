@@ -5,11 +5,12 @@ import { shipment } from "../../test/fixtures";
 const { supabase } = vi.hoisted(() => ({ supabase: { from: vi.fn(), rpc: vi.fn() } }));
 vi.mock("../../lib/supabaseClient", () => ({ supabase }));
 
-const { fetchShipments, replaceShipments } = await import("./shipmentsRepository");
+const { fetchShipments, saveImport } = await import("./shipmentsRepository");
 
 describe("shipmentsRepository", () => {
   beforeEach(() => {
     supabase.from.mockReset();
+    supabase.rpc.mockReset();
   });
 
   describe("fetchShipments", () => {
@@ -74,7 +75,7 @@ describe("shipmentsRepository", () => {
     });
   });
 
-  describe("replaceShipments", () => {
+  describe("saveImport", () => {
     const summary = {
       totalRows: 1,
       matchedRows: 1,
@@ -89,71 +90,26 @@ describe("shipmentsRepository", () => {
       sherlocFilename: "sherloc.xlsx",
     };
 
-    it("zapisuje: tworzy wpis w imports, kasuje stare dane, wstawia nowe", async () => {
-      supabase.from
-        .mockReturnValueOnce(createQueryBuilderMock({ data: { id: 42 } })) // imports insert
-        .mockReturnValueOnce(createQueryBuilderMock({ data: null })) // shipments delete
-        .mockReturnValueOnce(createQueryBuilderMock({ data: null })); // shipments insert
+    it("zapisuje JEDNYM wywolaniem funkcji bazy import_shipments i zwraca id importu", async () => {
+      supabase.rpc.mockResolvedValueOnce({ data: 42, error: null });
 
-      await replaceShipments([shipment()], summary);
+      const id = await saveImport({ summary, shipments: [shipment()], unmappedChuteIds: [] });
 
-      expect(supabase.from).toHaveBeenNthCalledWith(1, "imports");
-      expect(supabase.from).toHaveBeenNthCalledWith(2, "shipments");
-      expect(supabase.from).toHaveBeenNthCalledWith(3, "shipments");
+      expect(id).toBe(42);
+      expect(supabase.from).not.toHaveBeenCalled();
+      expect(supabase.rpc).toHaveBeenCalledTimes(1);
+      const [fn, args] = supabase.rpc.mock.calls[0];
+      expect(fn).toBe("import_shipments");
+      expect(args.p_import.panorama_filename).toBe("panorama.xlsx");
+      expect(args.p_import.today_rows).toBe(1);
+      expect(args.p_shipments).toHaveLength(1);
+      expect(args.p_shipments[0].shipment_id).toBe(shipment().shipmentId);
+      expect(args.p_prune_before).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     });
 
-    it("pusta lista shipments -> konczy po delete, bez wywolania insert", async () => {
-      supabase.from
-        .mockReturnValueOnce(createQueryBuilderMock({ data: { id: 42 } }))
-        .mockReturnValueOnce(createQueryBuilderMock({ data: null }));
-
-      await replaceShipments([], summary);
-
-      expect(supabase.from).toHaveBeenCalledTimes(2);
-    });
-
-    it("blad przy tworzeniu wpisu w imports -> rzuca, nie probuje kasowac/wstawiac", async () => {
-      supabase.from.mockReturnValueOnce(
-        createQueryBuilderMock({ error: new Error("imports insert failed") })
-      );
-
-      await expect(replaceShipments([shipment()], summary)).rejects.toThrow("imports insert failed");
-      expect(supabase.from).toHaveBeenCalledTimes(1);
-    });
-
-    it("blad przy kasowaniu starych danych -> rzuca, nie wstawia nowych", async () => {
-      supabase.from
-        .mockReturnValueOnce(createQueryBuilderMock({ data: { id: 42 } }))
-        .mockReturnValueOnce(createQueryBuilderMock({ error: new Error("delete failed") }));
-
-      await expect(replaceShipments([shipment()], summary)).rejects.toThrow("delete failed");
-      expect(supabase.from).toHaveBeenCalledTimes(2);
-    });
-
-    it("blad przy wstawianiu nowych danych -> rzuca", async () => {
-      supabase.from
-        .mockReturnValueOnce(createQueryBuilderMock({ data: { id: 42 } }))
-        .mockReturnValueOnce(createQueryBuilderMock({ data: null }))
-        .mockReturnValueOnce(createQueryBuilderMock({ error: new Error("insert failed") }));
-
-      await expect(replaceShipments([shipment()], summary)).rejects.toThrow("insert failed");
-    });
-
-    it("dzieli wstawianie na partie po 500 wierszy", async () => {
-      const manyShipments = Array.from({ length: 1200 }, (_, i) =>
-        shipment({ shipmentId: String(i) })
-      );
-      supabase.from
-        .mockReturnValueOnce(createQueryBuilderMock({ data: { id: 42 } }))
-        .mockReturnValueOnce(createQueryBuilderMock({ data: null }))
-        .mockReturnValueOnce(createQueryBuilderMock({ data: null }))
-        .mockReturnValueOnce(createQueryBuilderMock({ data: null }))
-        .mockReturnValueOnce(createQueryBuilderMock({ data: null }));
-
-      await replaceShipments(manyShipments, summary);
-
-      // 1 (imports) + 1 (delete) + 3 partie po <=500 = 5 wywolan .from()
-      expect(supabase.from).toHaveBeenCalledTimes(5);
+    it("blad bazy -> funkcja rzuca", async () => {
+      supabase.rpc.mockResolvedValueOnce({ data: null, error: new Error("rpc failed") });
+      await expect(saveImport({ summary, shipments: [], unmappedChuteIds: [] })).rejects.toThrow("rpc failed");
     });
   });
 });

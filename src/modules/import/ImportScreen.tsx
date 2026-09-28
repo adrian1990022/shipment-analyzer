@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { runImportPipeline, PipelineError } from "./pipeline";
-import { replaceShipments } from "../repository/shipmentsRepository";
-import { pruneShipmentActions } from "../repository/shipmentActionRepository";
-import { formatTimeHHmm, toLocalDateKey } from "../normalizer/normalize";
+import { saveImport } from "../repository/shipmentsRepository";
+import { formatTimeHHmm } from "../normalizer/normalize";
 import { RECENT_SCAN_WINDOW_MINUTES, buildScanCutoff } from "../dateFilter/filterByScanCutoff";
 import { reportError } from "../monitoring/reportError";
 import type { ImportResult } from "../../types/shipment";
@@ -10,7 +9,7 @@ import type { ImportResult } from "../../types/shipment";
 type Stage =
   | { kind: "picking"; error: string | null }
   | { kind: "analyzing" }
-  | { kind: "reviewing"; result: ImportResult }
+  | { kind: "reviewing"; result: ImportResult; error?: string }
   | { kind: "saving"; result: ImportResult }
   | { kind: "saved" };
 
@@ -24,18 +23,6 @@ const GROUP_LABELS: Record<string, string> = {
 function currentTimeHHmm(): string {
   const now = new Date();
   return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
-}
-
-// Najstarszy dzien skanu w wyniku (albo dzisiaj, jesli wczesniejszy) --
-// granica dla pruneShipmentActions: oznaczenia z dni wciaz obecnych w
-// raporcie musza przetrwac.
-function oldestDateKey(result: ImportResult): string {
-  let oldest = toLocalDateKey(new Date().toISOString())!;
-  for (const s of result.shipments) {
-    const key = toLocalDateKey(s.lastPhyCpDt);
-    if (key && key < oldest) oldest = key;
-  }
-  return oldest;
 }
 
 export function ImportScreen({ onSaved }: { onSaved: () => void }) {
@@ -75,20 +62,16 @@ export function ImportScreen({ onSaved }: { onSaved: () => void }) {
   async function handleAccept(result: ImportResult) {
     setStage({ kind: "saving", result });
     try {
-      await replaceShipments(result.shipments, result.summary);
+      // Jedno wywolanie, wszystko albo nic (import_shipments, migracja
+      // 0011) -- przy bledzie poprzednie dane zostaja nietkniete.
+      await saveImport(result);
     } catch {
-      setStage({ kind: "reviewing", result });
+      setStage({
+        kind: "reviewing",
+        result,
+        error: "Nie udalo sie zapisac importu. Poprzednie dane zostaly bez zmian -- sprobuj ponownie.",
+      });
       return;
-    }
-    try {
-      // Best-effort: usuwa shipment_actions starsze niz najstarsza przesylka
-      // w tym imporcie. Blad NIE moze zamaskowac udanego zapisu shipments
-      // jako porazki -- reportError juz odpalony wewnatrz
-      // pruneShipmentActions, najgorszy scenariusz to kilka nieaktualnych
-      // wierszy do nastepnego pruningu.
-      await pruneShipmentActions(oldestDateKey(result));
-    } catch {
-      // celowo brak dalszej obslugi -- patrz komentarz wyzej
     }
     setStage({ kind: "saved" });
     onSaved();
@@ -145,6 +128,7 @@ export function ImportScreen({ onSaved }: { onSaved: () => void }) {
         <ImportSummaryCard
           result={stage.result}
           saving={stage.kind === "saving"}
+          error={stage.kind === "reviewing" ? stage.error : undefined}
           onAccept={() => handleAccept(stage.result)}
           onReject={handleReject}
         />
@@ -162,10 +146,12 @@ export function ImportScreen({ onSaved }: { onSaved: () => void }) {
 function ImportSummaryCard({
   result,
   saving,
+  error,
   onAccept,
   onReject,
 }: {
   result: ImportResult;
+  error?: string;
   saving: boolean;
   onAccept: () => void;
   onReject: () => void;
@@ -221,6 +207,8 @@ function ImportSummaryCard({
       <p className="hint">
         Dane zostana zapisane dopiero po akceptacji i CALKOWICIE zastapia poprzedni import.
       </p>
+
+      {error && <p className="error">{error}</p>}
 
       <div className="actions">
         <button onClick={onReject} disabled={saving} className="secondary">

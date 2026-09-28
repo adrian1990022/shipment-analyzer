@@ -5,6 +5,30 @@ stanu aplikacji. Każdy wpis tutaj odpowiada jednemu commitowi w gita
 (`git log` pokaże dokładny diff; `git checkout <hash> -- .` albo
 `git revert <hash>` pozwala się cofnąć do/po danej zmianie).
 
+## 2026-09-28 — Atomowy zapis importu + import z panelu admina kurier_appp
+
+- **Zapis „wszystko albo nic”**: nowa funkcja bazy `import_shipments`
+  (migracja `0011_import_shipments_rpc.sql`) — wpis w `imports` + podmiana
+  całej tabeli `shipments` + czyszczenie `shipment_actions` starszych niż
+  `p_prune_before`, w jednej transakcji. Zastępuje `replaceShipments`
+  (4+ osobne zapytania z przeglądarki) i `pruneShipmentActions`
+  (usunięte). Odświeżenie ekranu w trakcie importu nie pokazuje już
+  pustej/niepełnej listy, a nieudany zapis zostawia poprzednie dane
+  nietknięte (ImportScreen pokazuje wtedy komunikat zamiast cicho wracać
+  do podsumowania). `SECURITY INVOKER` — RLS działa jak dotąd (import
+  tylko dla admina).
+- **Analiza wydzielona do czystego modułu** `import/analyzeImport.ts`
+  (dane referencyjne wstrzykiwane funkcją, wołaną dopiero po walidacji
+  plików) + `import/importPayload.ts` (budowa argumentów `import_shipments`).
+  `pipeline.ts` to teraz cienka nakładka ładująca routes/sortujących z
+  bazy shipment.
+- **Import z kurier_appp**: panel admina kuriera (Import danych →
+  Przesyłki) wgrywa raporty tą samą logiką — ma wygenerowaną kopię
+  modułów analizy (skrypt `kurier_appp/pwa/scripts/sync-shipment-pipeline.mjs`)
+  i zapisuje przez `import_shipments` kluczem service_role po sprawdzeniu
+  roli admina kuriera. **Po każdej zmianie modułów analizy tutaj trzeba
+  uruchomić ten skrypt w kurier_appp** (patrz README, sekcja Pipeline).
+
 ## 2026-09-25 — Import: starsze przesyłki zostają, reguła 15 minut
 
 - **Zniesiony filtr „tylko dzisiaj”** (`dateFilter/filterToday.ts`
