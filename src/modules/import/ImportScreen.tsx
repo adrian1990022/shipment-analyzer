@@ -4,6 +4,7 @@ import { saveImport } from "../repository/shipmentsRepository";
 import { formatTimeHHmm } from "../normalizer/normalize";
 import { RECENT_SCAN_WINDOW_MINUTES, buildScanCutoff } from "../dateFilter/filterByScanCutoff";
 import { reportError } from "../monitoring/reportError";
+import { AttendanceImport } from "../attendance/AttendanceImport";
 import type { ImportResult } from "../../types/shipment";
 
 type Stage =
@@ -139,6 +140,10 @@ export function ImportScreen({ onSaved }: { onSaved: () => void }) {
           <p>Dane zapisane. Poprzedni import zostal zastapiony.</p>
         </div>
       )}
+
+      {/* Lista obecnosci sortujacych (2026-10-13) -- niezalezna od importu
+          raportow, wklejana z Excela. */}
+      <AttendanceImport />
     </div>
   );
 }

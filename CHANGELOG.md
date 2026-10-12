@@ -5,6 +5,24 @@ stanu aplikacji. Każdy wpis tutaj odpowiada jednemu commitowi w gita
 (`git log` pokaże dokładny diff; `git checkout <hash> -- .` albo
 `git revert <hash>` pozwala się cofnąć do/po danej zmianie).
 
+## 2026-10-13 — Lista obecności sortujących (ekran Import)
+
+- **Nowa karta „Lista obecności sortujących”** na ekranie Import
+  (`attendance/AttendanceImport.tsx`): wybór miesiąca (bieżący / poprzedni),
+  wklejenie kolumny z Excela („Jan Kowalski_1”, „Jan Kowalski_2”…),
+  „Sprawdź” → podgląd (rozpoznani z liczbą dni, nieznane imiona
+  i nazwiska, niejednoznaczne, błędne wpisy, powtórzenia, „dane do dnia”),
+  „Zapisz” → cały miesiąc naraz.
+- Rozpoznawanie: `attendance/parseAttendance.ts` (+ testy) — dopasowanie do
+  „Imię i nazwisko” sortującego bez względu na wielkość liter i spacje,
+  polskie znaki muszą się zgadzać.
+- Baza (migracja `0015_sorter_attendance.sql`, uruchomiona i sprawdzona):
+  `sorter_attendance` (sortujący, dzień), `sorter_attendance_months` (do
+  którego dnia sięgają dane), funkcja `import_sorter_attendance` (wszystko
+  albo nic, retencja bieżący + poprzedni miesiąc). Tylko admin (RLS).
+- Odczyt: kurier_appp, kafelek „Sortujący” (`api/sortujacy.js`) — sortujący
+  pokazywani w loopie z kolumny „Loop”.
+
 ## 2026-10-13 — Sortujący: kolumna „Loop”
 
 - **Nowa kolumna „Loop”** na ekranie „Sortujący”, przed nazwą — zwykle

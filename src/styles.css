@@ -714,3 +714,16 @@ tbody tr.row-dubel td:first-child {
   padding: 6px 8px;
   font-size: 16px;
 }
+
+/* Lista obecnosci sortujacych (ekran Import, AttendanceImport.tsx). */
+.attendance-paste {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 16px;
+  font-family: inherit;
+  width: 100%;
+  resize: vertical;
+}
