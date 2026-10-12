@@ -41,6 +41,7 @@ describe("referenceBackupService", () => {
           id: 1,
           name: "Jan",
           fullName: "Jan Kowalski",
+          loop: "B",
           active: true,
           createdAt: "t",
           updatedAt: "t",
@@ -54,7 +55,7 @@ describe("referenceBackupService", () => {
       expect(backup.schemaVersion).toBe(1);
       expect(backup.createdBy).toBe("admin");
       expect(backup.routes).toEqual([{ chuteId: "P1R01", trasa: "WAEX", grupa: "P1" }]);
-      expect(backup.sorters).toEqual([{ id: 1, name: "Jan", fullName: "Jan Kowalski", active: true }]);
+      expect(backup.sorters).toEqual([{ id: 1, name: "Jan", fullName: "Jan Kowalski", loop: "B", active: true }]);
       expect(backup.sorterRoutes).toEqual([
         { sorterId: 1, route: "WAEX" },
         { sorterId: 1, route: "WAEF" },
@@ -185,6 +186,19 @@ describe("referenceBackupService", () => {
       backup.sorters.push({ id: 2, name: "B", fullName: null, active: true });
       backup.sorters.push({ id: 3, name: "C", fullName: "Anna Nowak", active: true });
       expect(validateBackup(JSON.stringify(backup)).valid).toBe(true);
+    });
+
+    it("loop opcjonalny: brak (stary plik), null i tekst sa poprawne; liczba odrzucona", () => {
+      const ok = JSON.parse(validBackupJson());
+      ok.sorters.push({ id: 2, name: "B", loop: null, active: true });
+      ok.sorters.push({ id: 3, name: "C", loop: "zastępca", active: true });
+      expect(validateBackup(JSON.stringify(ok)).valid).toBe(true);
+
+      const bad = JSON.parse(validBackupJson());
+      bad.sorters.push({ id: 2, name: "B", loop: 7, active: true });
+      const result = validateBackup(JSON.stringify(bad));
+      expect(result.valid).toBe(false);
+      expect(result.errors.some((e) => e.includes("loop"))).toBe(true);
     });
 
     it("odrzuca fullName, ktore nie jest tekstem", () => {

@@ -6,6 +6,7 @@ interface SorterRow {
   id: number;
   name: string;
   full_name: string | null;
+  loop: string | null;
   active: boolean;
   created_at: string;
   updated_at: string;
@@ -16,6 +17,7 @@ function fromRow(row: SorterRow): Sorter {
     id: row.id,
     name: row.name,
     fullName: row.full_name ?? null,
+    loop: row.loop ?? null,
     active: row.active,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -25,7 +27,7 @@ function fromRow(row: SorterRow): Sorter {
 // Lista sortujacych + ich trasy, do ekranu "Sortujacy" (lista/edycja).
 export async function fetchSorters(): Promise<SorterWithRoutes[]> {
   const [sortersRes, routesRes] = await Promise.all([
-    supabase.from("sorters").select("id, name, full_name, active, created_at, updated_at").order("name"),
+    supabase.from("sorters").select("id, name, full_name, loop, active, created_at, updated_at").order("name"),
     supabase.from("sorter_routes").select("sorter_id, route"),
   ]);
   if (sortersRes.error) {
@@ -129,16 +131,22 @@ export async function fetchRouteAssignmentStatus(): Promise<RouteAssignmentStatu
   }));
 }
 
-// Imie i nazwisko: przyciete, pusty tekst = null (nie wpisano).
-function normalizeFullName(fullName: string | null | undefined): string | null {
-  const trimmed = (fullName ?? "").trim();
+// Pola opcjonalne (imie i nazwisko, loop): przyciete, pusty tekst = null
+// (nie wpisano).
+function normalizeOptional(value: string | null | undefined): string | null {
+  const trimmed = (value ?? "").trim();
   return trimmed ? trimmed : null;
 }
 
-export async function createSorter(input: { name: string; fullName?: string | null; routes: string[] }): Promise<void> {
+export async function createSorter(input: {
+  name: string;
+  fullName?: string | null;
+  loop?: string | null;
+  routes: string[];
+}): Promise<void> {
   const { data, error } = await supabase
     .from("sorters")
-    .insert({ name: input.name, full_name: normalizeFullName(input.fullName) })
+    .insert({ name: input.name, full_name: normalizeOptional(input.fullName), loop: normalizeOptional(input.loop) })
     .select("id")
     .single();
   if (error) {
@@ -154,11 +162,12 @@ export async function createSorter(input: { name: string; fullName?: string | nu
 // tylko podane pola.
 export async function updateSorterDetails(
   id: number,
-  fields: { name?: string; fullName?: string | null }
+  fields: { name?: string; fullName?: string | null; loop?: string | null }
 ): Promise<void> {
-  const patch: { name?: string; full_name?: string | null } = {};
+  const patch: { name?: string; full_name?: string | null; loop?: string | null } = {};
   if (fields.name !== undefined) patch.name = fields.name;
-  if (fields.fullName !== undefined) patch.full_name = normalizeFullName(fields.fullName);
+  if (fields.fullName !== undefined) patch.full_name = normalizeOptional(fields.fullName);
+  if (fields.loop !== undefined) patch.loop = normalizeOptional(fields.loop);
   const { error } = await supabase.from("sorters").update(patch).eq("id", id);
   if (error) {
     reportError(error, { module: "sorterRepository", stage: "updateSorterDetails" });

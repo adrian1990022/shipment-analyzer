@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 
 // Komorka tabeli edytowalna w miejscu (ekran "Sortujacy", 2026-10-12):
 // dwuklik w tekst albo stukniecie w olowek -> pole tekstowe. Enter albo
@@ -9,6 +9,7 @@ export function EditableCell({
   label,
   required = false,
   maxLength,
+  suggestions,
   onSave,
   onError,
 }: {
@@ -18,6 +19,8 @@ export function EditableCell({
   // Wymagane = pusty tekst odrzucany (pole wraca do poprzedniej wartosci).
   required?: boolean;
   maxLength?: number;
+  // Podpowiedzi przy wpisywaniu (lista przegladarki), np. litery loopow.
+  suggestions?: string[];
   onSave: (next: string) => Promise<void>;
   onError: (message: string) => void;
 }) {
@@ -27,6 +30,7 @@ export function EditableCell({
   // Enter zapisuje, a zaraz potem pole traci fokus (onBlur) -- bez tej
   // flagi zapis poszedlby dwa razy.
   const finishing = useRef(false);
+  const listId = useId();
 
   function start() {
     if (saving) return;
@@ -67,24 +71,34 @@ export function EditableCell({
 
   if (editing) {
     return (
-      <input
-        className="editable-input"
-        autoFocus
-        value={draft}
-        maxLength={maxLength}
-        disabled={saving}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={commit}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            void commit();
-          } else if (e.key === "Escape") {
-            e.preventDefault();
-            cancel();
-          }
-        }}
-      />
+      <>
+        <input
+          className="editable-input"
+          autoFocus
+          list={suggestions?.length ? listId : undefined}
+          value={draft}
+          maxLength={maxLength}
+          disabled={saving}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              void commit();
+            } else if (e.key === "Escape") {
+              e.preventDefault();
+              cancel();
+            }
+          }}
+        />
+        {suggestions?.length ? (
+          <datalist id={listId}>
+            {suggestions.map((s) => (
+              <option key={s} value={s} />
+            ))}
+          </datalist>
+        ) : null}
+      </>
     );
   }
 

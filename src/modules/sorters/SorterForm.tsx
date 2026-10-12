@@ -27,6 +27,7 @@ export function SorterForm({
   const isEdit = Boolean(sorter);
   const [name, setName] = useState(sorter?.name ?? "");
   const [fullName, setFullName] = useState(sorter?.fullName ?? "");
+  const [loop, setLoop] = useState(sorter?.loop ?? "");
   const [active, setActive] = useState(sorter?.active ?? true);
   const [assignedRoutes, setAssignedRoutes] = useState<string[]>(sorter?.routes ?? []);
   const [pickedToAdd, setPickedToAdd] = useState<string[]>([]);
@@ -74,10 +75,10 @@ export function SorterForm({
       // od razu kliknal Zapisz bez wczesniejszego "Dodaj zaznaczone".
       const finalRoutes = Array.from(new Set([...assignedRoutes, ...pickedToAdd]));
       if (sorter) {
-        await updateSorterDetails(sorter.id, { name: name.trim(), fullName });
+        await updateSorterDetails(sorter.id, { name: name.trim(), fullName, loop });
         await replaceSorterRoutes(sorter.id, finalRoutes);
       } else {
-        await createSorter({ name: name.trim(), fullName, routes: finalRoutes });
+        await createSorter({ name: name.trim(), fullName, loop, routes: finalRoutes });
       }
       onDone();
     } catch {
@@ -103,6 +104,11 @@ export function SorterForm({
   return (
     <form className="card" onSubmit={handleSubmit}>
       <h2>{sorter ? "Edytuj sortującego" : "Dodaj sortującego"}</h2>
+
+      <label className="file-field">
+        <span>Loop (opcjonalnie) — zwykle litera loopa, np. B, albo „zastępca”</span>
+        <input value={loop} onChange={(e) => setLoop(e.target.value)} maxLength={20} placeholder="np. B" />
+      </label>
 
       <label className="file-field">
         <span>Nazwa</span>

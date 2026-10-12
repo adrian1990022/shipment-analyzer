@@ -27,7 +27,7 @@ describe("sorterRepository", () => {
         .mockReturnValueOnce(
           createQueryBuilderMock({
             data: [
-              { id: 1, name: "Jan", full_name: "Jan Kowalski", active: true, created_at: "t", updated_at: "t" },
+              { id: 1, name: "Jan", full_name: "Jan Kowalski", loop: "B", active: true, created_at: "t", updated_at: "t" },
               { id: 2, name: "Anna Nowak", active: false, created_at: "t", updated_at: "t" },
             ],
           })
@@ -48,6 +48,7 @@ describe("sorterRepository", () => {
           id: 1,
           name: "Jan",
           fullName: "Jan Kowalski",
+          loop: "B",
           active: true,
           createdAt: "t",
           updatedAt: "t",
@@ -57,6 +58,7 @@ describe("sorterRepository", () => {
           id: 2,
           name: "Anna Nowak",
           fullName: null,
+          loop: null,
           active: false,
           createdAt: "t",
           updatedAt: "t",
@@ -157,10 +159,10 @@ describe("sorterRepository", () => {
         .mockReturnValueOnce(createQueryBuilderMock({ data: null })) // sorter_routes delete
         .mockReturnValueOnce(createQueryBuilderMock({ data: null })); // sorter_routes upsert
 
-      await createSorter({ name: "Nowy", fullName: "  Jan Nowy ", routes: ["WAEX"] });
+      await createSorter({ name: "Nowy", fullName: "  Jan Nowy ", loop: " zastępca ", routes: ["WAEX"] });
 
       expect(supabase.from).toHaveBeenNthCalledWith(1, "sorters");
-      expect(supabase.from.mock.results[0].value.insert).toHaveBeenCalledWith({ name: "Nowy", full_name: "Jan Nowy" });
+      expect(supabase.from.mock.results[0].value.insert).toHaveBeenCalledWith({ name: "Nowy", full_name: "Jan Nowy", loop: "zastępca" });
       expect(supabase.from).toHaveBeenNthCalledWith(2, "sorter_routes");
       expect(supabase.from).toHaveBeenNthCalledWith(3, "sorter_routes");
     });
@@ -193,6 +195,18 @@ describe("sorterRepository", () => {
 
       expect(first.update).toHaveBeenCalledWith({ full_name: "Jan Kowalski" });
       expect(second.update).toHaveBeenCalledWith({ full_name: null });
+    });
+
+    it("updateSorterDetails: loop przyciety, pusty tekst -> null", async () => {
+      const first = createQueryBuilderMock({ data: null });
+      const second = createQueryBuilderMock({ data: null });
+      supabase.from.mockReturnValueOnce(first).mockReturnValueOnce(second);
+
+      await updateSorterDetails(3, { loop: " B " });
+      await updateSorterDetails(3, { loop: "" });
+
+      expect(first.update).toHaveBeenCalledWith({ loop: "B" });
+      expect(second.update).toHaveBeenCalledWith({ loop: null });
     });
 
     it("setSorterActive przelacza status", async () => {

@@ -10,6 +10,8 @@ export interface SorterBackupEntry {
   // Opcjonalne -- pliki sprzed 2026-10-12 go nie maja (wgrywaja sie z
   // pustym imieniem i nazwiskiem).
   fullName?: string | null;
+  // Opcjonalne jak fullName -- pliki sprzed 2026-10-13 go nie maja.
+  loop?: string | null;
   active: boolean;
 }
 

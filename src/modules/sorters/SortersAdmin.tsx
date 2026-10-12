@@ -4,7 +4,10 @@ import { naturalCompare } from "../normalizer/normalize";
 import type { SorterWithRoutes } from "../../types/sorter";
 import { EditableCell } from "./EditableCell";
 
-type SortKey = "name" | "fullName" | "firstRoute";
+type SortKey = "loop" | "name" | "fullName" | "firstRoute";
+
+// Stala podpowiedz w kolumnie Loop -- obok liter juz uzytych w tabeli.
+const ZASTEPCA = "zastępca";
 
 // Trasy sa juz posortowane alfabetycznie per sortujacy (patrz fetchSorters),
 // wiec pierwszy element to najwczesniejsza alfabetycznie trasa.
@@ -27,12 +30,12 @@ export function SortersAdmin({
 
   const visibleSorters = useMemo(() => {
     const sorted = [...sorters].sort((a, b) => {
-      if (sortKey === "fullName") {
-        // Bez imienia i nazwiska zawsze na koncu, w obu kierunkach.
-        const aEmpty = !a.fullName;
-        const bEmpty = !b.fullName;
-        if (aEmpty !== bEmpty) return aEmpty ? 1 : -1;
-        const cmp = naturalCompare(a.fullName ?? "", b.fullName ?? "");
+      if (sortKey === "fullName" || sortKey === "loop") {
+        // Puste (nie wpisano) zawsze na koncu, w obu kierunkach.
+        const av = a[sortKey] ?? "";
+        const bv = b[sortKey] ?? "";
+        if (!av !== !bv) return av ? -1 : 1;
+        const cmp = naturalCompare(av.toLocaleUpperCase("pl"), bv.toLocaleUpperCase("pl"));
         return sortAsc ? cmp : -cmp;
       }
       const cmp =
@@ -41,6 +44,17 @@ export function SortersAdmin({
     });
     return sorted;
   }, [sorters, sortKey, sortAsc]);
+
+  // Podpowiedzi w kolumnie Loop: wartosci juz uzyte (bez powtorzen, bez
+  // wzgledu na wielkosc liter) + "zastępca".
+  const loopSuggestions = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const s of sorters) {
+      if (s.loop) seen.set(s.loop.toLocaleUpperCase("pl"), s.loop);
+    }
+    seen.set(ZASTEPCA.toLocaleUpperCase("pl"), ZASTEPCA);
+    return [...seen.values()].sort((a, b) => naturalCompare(a, b));
+  }, [sorters]);
 
   function toggleSort(key: SortKey) {
     if (key === sortKey) {
@@ -69,7 +83,7 @@ export function SortersAdmin({
 
   // Edycja w tabeli (dwuklik / olowek): zapis jednego pola, potem lokalna
   // podmiana wiersza -- bez ponownego wczytywania calej listy.
-  async function saveField(id: number, fields: { name?: string; fullName?: string | null }) {
+  async function saveField(id: number, fields: { name?: string; fullName?: string | null; loop?: string | null }) {
     await updateSorterDetails(id, fields);
     setError(null);
     setSorters((list) =>
@@ -79,6 +93,7 @@ export function SortersAdmin({
               ...s,
               ...(fields.name !== undefined ? { name: fields.name } : {}),
               ...(fields.fullName !== undefined ? { fullName: fields.fullName || null } : {}),
+              ...(fields.loop !== undefined ? { loop: fields.loop || null } : {}),
             }
           : s
       )
@@ -98,7 +113,7 @@ export function SortersAdmin({
         do sortującego wyliczonego regułą awaryjną (3. litera trasy).
       </p>
       <p className="hint">
-        Kliknij dwukrotnie nazwę lub imię i nazwisko (albo ✎), aby edytować. Enter zapisuje, Esc anuluje.
+        Kliknij dwukrotnie loop, nazwę lub imię i nazwisko (albo ✎), aby edytować. Enter zapisuje, Esc anuluje.
       </p>
 
       <button onClick={onAdd}>+ Dodaj sortującego</button>
@@ -110,6 +125,9 @@ export function SortersAdmin({
         <table className="data-table" style={{ marginTop: 16 }}>
           <thead>
             <tr>
+              <th className="sortable" onClick={() => toggleSort("loop")}>
+                Loop {sortKey === "loop" && (sortAsc ? "↑" : "↓")}
+              </th>
               <th className="sortable" onClick={() => toggleSort("name")}>
                 Nazwa sortującego {sortKey === "name" && (sortAsc ? "↑" : "↓")}
               </th>
@@ -126,6 +144,16 @@ export function SortersAdmin({
           <tbody>
             {visibleSorters.map((s) => (
               <tr key={s.id}>
+                <td>
+                  <EditableCell
+                    value={s.loop ?? ""}
+                    label="loop"
+                    maxLength={20}
+                    suggestions={loopSuggestions}
+                    onSave={(loop) => saveField(s.id, { loop })}
+                    onError={setError}
+                  />
+                </td>
                 <td>
                   <EditableCell
                     value={s.name}

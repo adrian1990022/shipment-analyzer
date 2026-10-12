@@ -23,7 +23,7 @@ export async function buildBackup(createdBy: string): Promise<ReferenceBackup> {
     createdAt: new Date().toISOString(),
     createdBy,
     routes: routes.map((r) => ({ chuteId: r.chuteId, trasa: r.trasa, grupa: r.grupa })),
-    sorters: sorters.map((s) => ({ id: s.id, name: s.name, fullName: s.fullName, active: s.active })),
+    sorters: sorters.map((s) => ({ id: s.id, name: s.name, fullName: s.fullName, loop: s.loop, active: s.active })),
     sorterRoutes: sorters.flatMap((s) => s.routes.map((route) => ({ sorterId: s.id, route }))),
   };
 }
@@ -114,6 +114,9 @@ export function validateBackup(raw: string): BackupValidationResult {
     // fullName opcjonalne (starsze pliki go nie maja).
     if (row.fullName !== undefined && row.fullName !== null && typeof row.fullName !== "string") {
       errors.push(`sorters[${i}]: fullName musi być tekstem.`);
+    }
+    if (row.loop !== undefined && row.loop !== null && typeof row.loop !== "string") {
+      errors.push(`sorters[${i}]: loop musi być tekstem.`);
     }
   });
 

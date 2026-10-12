@@ -80,8 +80,9 @@ raportem pokrycia (patrz sekcja [Testy](#testy)).
   zachowuje zgodność z danymi sprzed wprowadzenia relacji.
   Sortujący ma nazwę roboczą (`name`, widoczna wszędzie) i opcjonalne
   „Imię i nazwisko” (`full_name`, migracja 0013) — to drugie tylko na
-  ekranie „Sortujący”. Oba pola edytowalne w tabeli: dwuklik albo ✎,
-  Enter zapisuje, Esc anuluje (`EditableCell.tsx`).
+  ekranie „Sortujący”. Do tego „Loop” (`loop`, migracja 0014) — litera
+  loopa kuriera albo np. „zastępca”. Wszystkie trzy edytowalne w tabeli:
+  dwuklik albo ✎, Enter zapisuje, Esc anuluje (`EditableCell.tsx`).
 - **Nie zapisujemy oryginalnych raportów** — cały pipeline (parsowanie,
   join, filtr daty, mapowanie) działa w pamięci przeglądarki; do
   Supabase trafia wyłącznie wynik końcowy, po akceptacji użytkownika.

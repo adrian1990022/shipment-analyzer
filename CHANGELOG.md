@@ -5,6 +5,20 @@ stanu aplikacji. Każdy wpis tutaj odpowiada jednemu commitowi w gita
 (`git log` pokaże dokładny diff; `git checkout <hash> -- .` albo
 `git revert <hash>` pozwala się cofnąć do/po danej zmianie).
 
+## 2026-10-13 — Sortujący: kolumna „Loop”
+
+- **Nowa kolumna „Loop”** na ekranie „Sortujący”, przed nazwą — zwykle
+  litera loopa kuriera (A, B, …), ale wolny tekst do 20 znaków (np.
+  „zastępca”). Edycja w tabeli jak pozostałe (dwuklik / ✎) z podpowiedziami:
+  wartości już użyte + „zastępca”. Sortowalna (puste na końcu, wielkość
+  liter bez znaczenia). Pole też w formularzu „Dodaj/Edytuj”.
+- Baza: `sorters.loop` (opcjonalne, migracja `0014_sorters_loop.sql` —
+  uruchomiona i sprawdzona). Backup zapisuje/odtwarza `loop`; starsze pliki
+  bez niego nadal się wgrywają.
+- Etap 1 z planu „obecność sortujących w kurier_appp”: docelowo kurier
+  pokaże sortującego w loopie o tym kodzie. Wklejanie obecności, kafelek
+  w kurierze i zastępcy — jeszcze nie zrobione (czekają na decyzję Adriana).
+
 ## 2026-10-12 — Sortujący: „Imię i nazwisko” + edycja w tabeli
 
 - **Nowa kolumna „Imię i nazwisko”** na ekranie „Sortujący” (między nazwą
