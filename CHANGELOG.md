@@ -5,6 +5,25 @@ stanu aplikacji. Każdy wpis tutaj odpowiada jednemu commitowi w gita
 (`git log` pokaże dokładny diff; `git checkout <hash> -- .` albo
 `git revert <hash>` pozwala się cofnąć do/po danej zmianie).
 
+## 2026-10-12 — Sortujący: „Imię i nazwisko” + edycja w tabeli
+
+- **Nowa kolumna „Imię i nazwisko”** na ekranie „Sortujący” (między nazwą
+  a trasami), sortowalna (puste zawsze na końcu). Baza: `sorters.full_name`
+  (opcjonalne, max 100 znaków, migracja `0013_sorters_full_name.sql` —
+  uruchomiona i sprawdzona). Tylko na tym ekranie — dashboard, mapper
+  i kurier_appp dalej używają nazwy roboczej (`name`).
+- **Edycja w tabeli** (`sorters/EditableCell.tsx`): dwuklik w nazwę albo
+  imię i nazwisko (lub ✎ — na iPhonie podwójne stuknięcie bywa
+  powiększeniem) → pole tekstowe; Enter / kliknięcie obok zapisuje, Esc
+  anuluje. Pusta nazwa odrzucana (wraca poprzednia), puste imię
+  i nazwisko = wyczyszczone. Błąd zapisu → komunikat + poprzednia wartość.
+- Formularz „Dodaj/Edytuj” ma pole „Imię i nazwisko”.
+  `updateSorterName` zastąpione przez `updateSorterDetails` (tylko
+  podane pola).
+- **Backup danych referencyjnych** zapisuje i odtwarza `fullName`; pliki
+  sprzed tej zmiany (bez `fullName`) nadal się wgrywają (puste imię
+  i nazwisko) — `schemaVersion` bez zmian.
+
 ## 2026-10-12 — Poprawki po audycie QA (kurier_appp/RAPORT_QA_2026-10-11.md)
 
 - **Stronicowanie**: `fetchShipments` i `fetchHandledMap` pobierają dane

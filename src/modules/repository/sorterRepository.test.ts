@@ -10,7 +10,7 @@ const {
   fetchSorterNameByTrasa,
   fetchRouteAssignmentStatus,
   createSorter,
-  updateSorterName,
+  updateSorterDetails,
   setSorterActive,
   replaceSorterRoutes,
   deleteSorter,
@@ -27,7 +27,7 @@ describe("sorterRepository", () => {
         .mockReturnValueOnce(
           createQueryBuilderMock({
             data: [
-              { id: 1, name: "Jan Kowalski", active: true, created_at: "t", updated_at: "t" },
+              { id: 1, name: "Jan", full_name: "Jan Kowalski", active: true, created_at: "t", updated_at: "t" },
               { id: 2, name: "Anna Nowak", active: false, created_at: "t", updated_at: "t" },
             ],
           })
@@ -46,7 +46,8 @@ describe("sorterRepository", () => {
       expect(result).toEqual([
         {
           id: 1,
-          name: "Jan Kowalski",
+          name: "Jan",
+          fullName: "Jan Kowalski",
           active: true,
           createdAt: "t",
           updatedAt: "t",
@@ -55,6 +56,7 @@ describe("sorterRepository", () => {
         {
           id: 2,
           name: "Anna Nowak",
+          fullName: null,
           active: false,
           createdAt: "t",
           updatedAt: "t",
@@ -155,9 +157,10 @@ describe("sorterRepository", () => {
         .mockReturnValueOnce(createQueryBuilderMock({ data: null })) // sorter_routes delete
         .mockReturnValueOnce(createQueryBuilderMock({ data: null })); // sorter_routes upsert
 
-      await createSorter({ name: "Nowy", routes: ["WAEX"] });
+      await createSorter({ name: "Nowy", fullName: "  Jan Nowy ", routes: ["WAEX"] });
 
       expect(supabase.from).toHaveBeenNthCalledWith(1, "sorters");
+      expect(supabase.from.mock.results[0].value.insert).toHaveBeenCalledWith({ name: "Nowy", full_name: "Jan Nowy" });
       expect(supabase.from).toHaveBeenNthCalledWith(2, "sorter_routes");
       expect(supabase.from).toHaveBeenNthCalledWith(3, "sorter_routes");
     });
@@ -169,15 +172,27 @@ describe("sorterRepository", () => {
     });
   });
 
-  describe("updateSorterName / setSorterActive / deleteSorter", () => {
-    it("updateSorterName aktualizuje nazwe po id", async () => {
+  describe("updateSorterDetails / setSorterActive / deleteSorter", () => {
+    it("updateSorterDetails aktualizuje tylko podane pola po id", async () => {
       const builder = createQueryBuilderMock({ data: null });
       supabase.from.mockReturnValueOnce(builder);
 
-      await updateSorterName(3, "Nowe imie");
+      await updateSorterDetails(3, { name: "Nowe imie" });
 
       expect(builder.update).toHaveBeenCalledWith({ name: "Nowe imie" });
       expect(builder.eq).toHaveBeenCalledWith("id", 3);
+    });
+
+    it("updateSorterDetails: imie i nazwisko przyciete, pusty tekst -> null", async () => {
+      const first = createQueryBuilderMock({ data: null });
+      const second = createQueryBuilderMock({ data: null });
+      supabase.from.mockReturnValueOnce(first).mockReturnValueOnce(second);
+
+      await updateSorterDetails(3, { fullName: "  Jan Kowalski  " });
+      await updateSorterDetails(3, { fullName: "   " });
+
+      expect(first.update).toHaveBeenCalledWith({ full_name: "Jan Kowalski" });
+      expect(second.update).toHaveBeenCalledWith({ full_name: null });
     });
 
     it("setSorterActive przelacza status", async () => {
@@ -201,7 +216,7 @@ describe("sorterRepository", () => {
 
     it("blad Supabase w kazdej z tych funkcji -> rzuca", async () => {
       supabase.from.mockReturnValueOnce(createQueryBuilderMock({ error: new Error("update failed") }));
-      await expect(updateSorterName(1, "x")).rejects.toThrow("update failed");
+      await expect(updateSorterDetails(1, { name: "x" })).rejects.toThrow("update failed");
     });
   });
 

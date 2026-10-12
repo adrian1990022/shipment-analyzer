@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { deleteSorter, fetchSorters } from "../repository/sorterRepository";
+import { deleteSorter, fetchSorters, updateSorterDetails } from "../repository/sorterRepository";
 import { naturalCompare } from "../normalizer/normalize";
 import type { SorterWithRoutes } from "../../types/sorter";
+import { EditableCell } from "./EditableCell";
 
-type SortKey = "name" | "firstRoute";
+type SortKey = "name" | "fullName" | "firstRoute";
 
 // Trasy sa juz posortowane alfabetycznie per sortujacy (patrz fetchSorters),
 // wiec pierwszy element to najwczesniejsza alfabetycznie trasa.
@@ -26,6 +27,14 @@ export function SortersAdmin({
 
   const visibleSorters = useMemo(() => {
     const sorted = [...sorters].sort((a, b) => {
+      if (sortKey === "fullName") {
+        // Bez imienia i nazwiska zawsze na koncu, w obu kierunkach.
+        const aEmpty = !a.fullName;
+        const bEmpty = !b.fullName;
+        if (aEmpty !== bEmpty) return aEmpty ? 1 : -1;
+        const cmp = naturalCompare(a.fullName ?? "", b.fullName ?? "");
+        return sortAsc ? cmp : -cmp;
+      }
       const cmp =
         sortKey === "name" ? naturalCompare(a.name, b.name) : naturalCompare(firstRoute(a), firstRoute(b));
       return sortAsc ? cmp : -cmp;
@@ -58,6 +67,24 @@ export function SortersAdmin({
     reload();
   }, []);
 
+  // Edycja w tabeli (dwuklik / olowek): zapis jednego pola, potem lokalna
+  // podmiana wiersza -- bez ponownego wczytywania calej listy.
+  async function saveField(id: number, fields: { name?: string; fullName?: string | null }) {
+    await updateSorterDetails(id, fields);
+    setError(null);
+    setSorters((list) =>
+      list.map((s) =>
+        s.id === id
+          ? {
+              ...s,
+              ...(fields.name !== undefined ? { name: fields.name } : {}),
+              ...(fields.fullName !== undefined ? { fullName: fields.fullName || null } : {}),
+            }
+          : s
+      )
+    );
+  }
+
   async function handleDelete(id: number) {
     await deleteSorter(id);
     await reload();
@@ -69,6 +96,9 @@ export function SortersAdmin({
       <p className="hint">
         Zarządzanie listą sortujących i przypisanymi im trasami. Trasa bez przypisania nadal trafia
         do sortującego wyliczonego regułą awaryjną (3. litera trasy).
+      </p>
+      <p className="hint">
+        Kliknij dwukrotnie nazwę lub imię i nazwisko (albo ✎), aby edytować. Enter zapisuje, Esc anuluje.
       </p>
 
       <button onClick={onAdd}>+ Dodaj sortującego</button>
@@ -83,6 +113,9 @@ export function SortersAdmin({
               <th className="sortable" onClick={() => toggleSort("name")}>
                 Nazwa sortującego {sortKey === "name" && (sortAsc ? "↑" : "↓")}
               </th>
+              <th className="sortable" onClick={() => toggleSort("fullName")}>
+                Imię i nazwisko {sortKey === "fullName" && (sortAsc ? "↑" : "↓")}
+              </th>
               <th className="sortable" onClick={() => toggleSort("firstRoute")}>
                 Trasy {sortKey === "firstRoute" && (sortAsc ? "↑" : "↓")}
               </th>
@@ -93,7 +126,24 @@ export function SortersAdmin({
           <tbody>
             {visibleSorters.map((s) => (
               <tr key={s.id}>
-                <td>{s.name}</td>
+                <td>
+                  <EditableCell
+                    value={s.name}
+                    label="nazwę sortującego"
+                    required
+                    onSave={(name) => saveField(s.id, { name })}
+                    onError={setError}
+                  />
+                </td>
+                <td>
+                  <EditableCell
+                    value={s.fullName ?? ""}
+                    label="imię i nazwisko"
+                    maxLength={100}
+                    onSave={(fullName) => saveField(s.id, { fullName })}
+                    onError={setError}
+                  />
+                </td>
                 <td>
                   <span className="routes-cell">{s.routes.join(", ")}</span>
                 </td>

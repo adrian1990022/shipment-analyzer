@@ -7,6 +7,9 @@ export interface RouteBackupEntry {
 export interface SorterBackupEntry {
   id: number;
   name: string;
+  // Opcjonalne -- pliki sprzed 2026-10-12 go nie maja (wgrywaja sie z
+  // pustym imieniem i nazwiskiem).
+  fullName?: string | null;
   active: boolean;
 }
 

@@ -4,7 +4,7 @@ import {
   fetchRouteAssignmentStatus,
   replaceSorterRoutes,
   setSorterActive,
-  updateSorterName,
+  updateSorterDetails,
 } from "../repository/sorterRepository";
 import type { SorterWithRoutes } from "../../types/sorter";
 
@@ -26,6 +26,7 @@ export function SorterForm({
 }) {
   const isEdit = Boolean(sorter);
   const [name, setName] = useState(sorter?.name ?? "");
+  const [fullName, setFullName] = useState(sorter?.fullName ?? "");
   const [active, setActive] = useState(sorter?.active ?? true);
   const [assignedRoutes, setAssignedRoutes] = useState<string[]>(sorter?.routes ?? []);
   const [pickedToAdd, setPickedToAdd] = useState<string[]>([]);
@@ -73,10 +74,10 @@ export function SorterForm({
       // od razu kliknal Zapisz bez wczesniejszego "Dodaj zaznaczone".
       const finalRoutes = Array.from(new Set([...assignedRoutes, ...pickedToAdd]));
       if (sorter) {
-        await updateSorterName(sorter.id, name.trim());
+        await updateSorterDetails(sorter.id, { name: name.trim(), fullName });
         await replaceSorterRoutes(sorter.id, finalRoutes);
       } else {
-        await createSorter({ name: name.trim(), routes: finalRoutes });
+        await createSorter({ name: name.trim(), fullName, routes: finalRoutes });
       }
       onDone();
     } catch {
@@ -105,7 +106,17 @@ export function SorterForm({
 
       <label className="file-field">
         <span>Nazwa</span>
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="np. Jan Kowalski" />
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="np. Piotrek" />
+      </label>
+
+      <label className="file-field">
+        <span>Imię i nazwisko (opcjonalnie)</span>
+        <input
+          value={fullName}
+          onChange={(e) => setFullName(e.target.value)}
+          maxLength={100}
+          placeholder="np. Jan Kowalski"
+        />
       </label>
 
       {isEdit && (

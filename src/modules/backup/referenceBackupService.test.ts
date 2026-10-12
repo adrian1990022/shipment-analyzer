@@ -37,7 +37,15 @@ describe("referenceBackupService", () => {
     it("sklada backup z routes i sorters (sorterRoutes splaszczone z routes[])", async () => {
       fetchRoutes.mockResolvedValue([routeRef({ chuteId: "P1R01", trasa: "WAEX", grupa: "P1" })]);
       fetchSorters.mockResolvedValue([
-        { id: 1, name: "Jan Kowalski", active: true, createdAt: "t", updatedAt: "t", routes: ["WAEX", "WAEF"] },
+        {
+          id: 1,
+          name: "Jan",
+          fullName: "Jan Kowalski",
+          active: true,
+          createdAt: "t",
+          updatedAt: "t",
+          routes: ["WAEX", "WAEF"],
+        },
       ]);
 
       const backup = await buildBackup("admin");
@@ -46,7 +54,7 @@ describe("referenceBackupService", () => {
       expect(backup.schemaVersion).toBe(1);
       expect(backup.createdBy).toBe("admin");
       expect(backup.routes).toEqual([{ chuteId: "P1R01", trasa: "WAEX", grupa: "P1" }]);
-      expect(backup.sorters).toEqual([{ id: 1, name: "Jan Kowalski", active: true }]);
+      expect(backup.sorters).toEqual([{ id: 1, name: "Jan", fullName: "Jan Kowalski", active: true }]);
       expect(backup.sorterRoutes).toEqual([
         { sorterId: 1, route: "WAEX" },
         { sorterId: 1, route: "WAEF" },
@@ -170,6 +178,21 @@ describe("referenceBackupService", () => {
       const result = validateBackup(JSON.stringify(backup));
       expect(result.valid).toBe(false);
       expect(result.errors.some((e) => e.includes("brak name"))).toBe(true);
+    });
+
+    it("fullName opcjonalne: brak (stary plik), null i tekst sa poprawne", () => {
+      const backup = JSON.parse(validBackupJson());
+      backup.sorters.push({ id: 2, name: "B", fullName: null, active: true });
+      backup.sorters.push({ id: 3, name: "C", fullName: "Anna Nowak", active: true });
+      expect(validateBackup(JSON.stringify(backup)).valid).toBe(true);
+    });
+
+    it("odrzuca fullName, ktore nie jest tekstem", () => {
+      const backup = JSON.parse(validBackupJson());
+      backup.sorters.push({ id: 2, name: "B", fullName: 123, active: true });
+      const result = validateBackup(JSON.stringify(backup));
+      expect(result.valid).toBe(false);
+      expect(result.errors.some((e) => e.includes("fullName"))).toBe(true);
     });
 
     it("odrzuca sortujacego bez pola id", () => {
