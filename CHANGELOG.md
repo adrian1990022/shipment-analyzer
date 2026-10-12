@@ -5,6 +5,20 @@ stanu aplikacji. Każdy wpis tutaj odpowiada jednemu commitowi w gita
 (`git log` pokaże dokładny diff; `git checkout <hash> -- .` albo
 `git revert <hash>` pozwala się cofnąć do/po danej zmianie).
 
+## 2026-10-12 — Poprawki po audycie QA (kurier_appp/RAPORT_QA_2026-10-11.md)
+
+- **Stronicowanie**: `fetchShipments` i `fetchHandledMap` pobierają dane
+  stronami (`src/lib/fetchAllPages.ts` + test) — PostgREST oddaje max 1000
+  wierszy i nadmiar ucinał PO CICHU (lista przesyłek byłaby niepełna bez
+  żadnego błędu).
+- **`shipment_actions` tylko dla istniejących przesyłek** (migracja
+  `0012_shipment_actions_istniejaca_przesylka.sql`, uruchomiona i
+  sprawdzona): zwykły user nie zapisze już „obsłużono” dla nieistniejącego
+  `shipment_id` (insert i update). Admin i funkcje serwerowe bez zmian.
+- **CSP w trybie Report-Only** w `vercel.json` (decyzja Adriana — nic nie
+  blokuje, tylko loguje naruszenia w konsoli przeglądarki). Wymuszanie =
+  zmiana nazwy nagłówka na `Content-Security-Policy` po sprawdzeniu konsoli.
+
 ## 2026-09-28 — Atomowy zapis importu + import z panelu admina kurier_appp
 
 - **Zapis „wszystko albo nic”**: nowa funkcja bazy `import_shipments`

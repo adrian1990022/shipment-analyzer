@@ -1,4 +1,5 @@
 import { supabase } from "../../lib/supabaseClient";
+import { fetchAllPages } from "../../lib/fetchAllPages";
 import { reportError } from "../monitoring/reportError";
 import type { ImportResult, Shipment } from "../../types/shipment";
 import { buildImportPayload, type ShipmentInsertRow } from "../import/importPayload";
@@ -30,18 +31,24 @@ function fromRow(row: ShipmentRow & { id: number }): Shipment {
   };
 }
 
+// Stronami (fetchAllPages) -- powyzej 1000 przesylek lista ucinalaby sie
+// po cichu.
 export async function fetchShipments(): Promise<Shipment[]> {
-  const { data, error } = await supabase
-    .from("shipments")
-    .select(
-      "shipment_id, remarks, hwx, last_phy_cp, last_phy_cp_dt, weight_dimension, shp_calc_wgt, shp_tot_pcs, consignee_name, chute_id, receiver_name, rcvr_addr1, rcvr_postcode, rcvr_city, trasa, grupa, sortujacy, wystapilo, import_id, id"
+  let data: unknown[];
+  try {
+    data = await fetchAllPages(() =>
+      supabase
+        .from("shipments")
+        .select(
+          "shipment_id, remarks, hwx, last_phy_cp, last_phy_cp_dt, weight_dimension, shp_calc_wgt, shp_tot_pcs, consignee_name, chute_id, receiver_name, rcvr_addr1, rcvr_postcode, rcvr_city, trasa, grupa, sortujacy, wystapilo, import_id, id"
+        )
+        .order("id")
     );
-
-  if (error) {
+  } catch (error) {
     reportError(error, { module: "shipmentsRepository", stage: "fetchShipments" });
     throw error;
   }
-  return (data ?? []).map((row) => fromRow(row as ShipmentRow & { id: number }));
+  return data.map((row) => fromRow(row as ShipmentRow & { id: number }));
 }
 
 // Zapisuje zaakceptowany import JEDNYM wywolaniem funkcji bazy

@@ -6,7 +6,7 @@ export interface MockResult {
 }
 
 // Chainable, "thenable" mock jednego zapytania supabase-js: kazda metoda
-// (select/insert/update/upsert/delete/eq/order/gte) zwraca siebie -- tak
+// (select/insert/update/upsert/delete/eq/order/gte/range) zwraca siebie -- tak
 // jak prawdziwy PostgrestFilterBuilder -- a caly lancuch mozna zawaitowac
 // (albo zakonczyc .single()/.maybeSingle()), zeby dostac skonfigurowany
 // wynik. Uzycie w testach repository:
@@ -25,6 +25,7 @@ export function createQueryBuilderMock(result: MockResult) {
     neq: vi.fn(() => builder),
     order: vi.fn(() => builder),
     gte: vi.fn(() => builder),
+    range: vi.fn(() => builder),
     single: vi.fn(() => resolved),
     maybeSingle: vi.fn(() => resolved),
     then: (onFulfilled: Parameters<Promise<unknown>["then"]>[0], onRejected: Parameters<Promise<unknown>["then"]>[1]) =>

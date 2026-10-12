@@ -1,4 +1,5 @@
 import { supabase } from "../../lib/supabaseClient";
+import { fetchAllPages } from "../../lib/fetchAllPages";
 import { reportError } from "../monitoring/reportError";
 import { buildHandledKey } from "../normalizer/normalize";
 
@@ -31,15 +32,19 @@ export function buildHandledMap(rows: ShipmentActionRow[]): Map<string, boolean>
   return map;
 }
 
-// Pobiera CALY stan "obsluzono" JEDNYM zapytaniem -- laczenie z Shipment[]
-// dzieje sie w pamieci (App.tsx), zeby nie robic zapytania per wiersz tabeli.
+// Pobiera CALY stan "obsluzono" (stronami, fetchAllPages -- limit 1000
+// wierszy) -- laczenie z Shipment[] dzieje sie w pamieci (App.tsx), zeby nie
+// robic zapytania per wiersz tabeli.
 export async function fetchHandledMap(): Promise<Map<string, boolean>> {
-  const { data, error } = await supabase.from("shipment_actions").select("shipment_id, shipment_date, handled");
-  if (error) {
+  let rows: ShipmentActionDbRow[];
+  try {
+    rows = (await fetchAllPages(() =>
+      supabase.from("shipment_actions").select("shipment_id, shipment_date, handled").order("id")
+    )) as ShipmentActionDbRow[];
+  } catch (error) {
     reportError(error, { module: "shipmentActionRepository", stage: "fetchHandledMap" });
     throw error;
   }
-  const rows = (data ?? []) as ShipmentActionDbRow[];
   return buildHandledMap(
     rows.map((row) => ({ shipmentId: row.shipment_id, shipmentDate: row.shipment_date, handled: row.handled }))
   );
