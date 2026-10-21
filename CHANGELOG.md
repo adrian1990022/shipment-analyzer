@@ -5,6 +5,28 @@ stanu aplikacji. Każdy wpis tutaj odpowiada jednemu commitowi w gita
 (`git log` pokaże dokładny diff; `git checkout <hash> -- .` albo
 `git revert <hash>` pozwala się cofnąć do/po danej zmianie).
 
+## 2026-10-21 — Automatyczna aktualizacja PWA + numer wersji
+
+- **Nowe wydanie wczytuje się samo**: rejestracja Service Workera tylko w
+  `src/lib/registerServiceWorker.ts` (`virtual:pwa-register`, tryb
+  `autoUpdate`, `injectRegister: false` — bez drugiego, wstrzykiwanego
+  registerSW.js). Sprawdzanie nowego wydania co 5 min i po powrocie do
+  karty/aplikacji; nowy SW przejmuje stronę i aplikacja się przeładowuje.
+  Bez sieci nie sprawdza. Dawniej nowa wersja pojawiała się dopiero przy
+  kolejnym otwarciu, a długo otwarta karta zostawała na starej.
+- `workbox.skipWaiting` / `clientsClaim` ustawione JAWNIE — plugin dodaje
+  je sam tylko przy wstrzykiwanej rejestracji; bez nich `autoUpdate` nie
+  przeładowywał strony (złapane testem w Chrome).
+- **Numer wersji w stopce każdego ekranu** (także logowania): `v0.1.0 ·
+  a1b2c3d` = `version` z package.json · krótki SHA commita
+  (`VERCEL_GIT_COMMIT_SHA` na Vercelu, lokalnie git) — ten sam SHA to
+  release w Sentry (`src/lib/appVersion.ts`).
+- Testy: `registerServiceWorker.test.ts`, `appVersion.test.ts`; test w
+  prawdziwym Chrome (build A → otwarta aplikacja → build B): samo
+  przeładowanie po 5 min i po powrocie do aplikacji, odświeżenie, offline.
+- Po automatycznym przeładowaniu aplikacja startuje od Dashboardu (stos
+  ekranów nie jest odtwarzany).
+
 ## 2026-10-21 — Baza przypisań tras zamiast Chute ID
 
 - **Trasa przesyłki pochodzi wyłącznie z bazy przypisań tras** (plik

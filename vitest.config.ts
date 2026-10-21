@@ -1,8 +1,16 @@
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 
 // Osobny config od vite.config.ts (nie mieszamy z vite-plugin-pwa) --
 // testy uruchamiane sa przez "vitest", nie "vite".
 export default defineConfig({
+  // Moduly wirtualne vite-plugin-pwa nie istnieja bez pluginu -- w testach
+  // zastepcza atrapa (i tak mockowana w registerServiceWorker.test.ts).
+  resolve: {
+    alias: {
+      "virtual:pwa-register": fileURLToPath(new URL("./src/test/pwaRegisterStub.ts", import.meta.url)),
+    },
+  },
   test: {
     environment: "node",
     include: ["src/**/*.test.ts"],
@@ -27,6 +35,9 @@ export default defineConfig({
         "src/modules/import/pipeline.ts",
         "src/modules/import/analyzeImport.ts",
         "src/modules/import/importPayload.ts",
+        "src/modules/routeBase/parseRouteBase.ts",
+        "src/lib/registerServiceWorker.ts",
+        "src/lib/appVersion.ts",
       ],
       exclude: ["**/*.test.ts", "**/*.tsx"],
       thresholds: {

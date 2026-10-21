@@ -1,4 +1,5 @@
 /// <reference types="vite/client" />
+/// <reference types="vite-plugin-pwa/client" />
 
 interface ImportMetaEnv {
   readonly VITE_SUPABASE_URL: string;
@@ -12,6 +13,8 @@ interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
 
-// Wstrzykiwane przez vite.config.ts (define) z "git rev-parse --short HEAD"
-// w czasie builda -- grupuje zdarzenia w Sentry per-deploy.
+// Wstrzykiwane przez vite.config.ts (define) w czasie builda:
+// __APP_RELEASE__ -- krotki SHA commita (Vercel albo git), release w Sentry
+// i identyfikator wydania w stopce; __APP_VERSION__ -- "version" z package.json.
 declare const __APP_RELEASE__: string;
+declare const __APP_VERSION__: string;

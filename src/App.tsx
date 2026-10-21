@@ -24,6 +24,7 @@ import { AdminRoute } from "./modules/auth/AdminRoute";
 import { useNavigation } from "./navigation/useNavigation";
 import { ErrorBoundary } from "./modules/monitoring/ErrorBoundary";
 import { reportError } from "./modules/monitoring/reportError";
+import { APP_VERSION_LABEL } from "./lib/appVersion";
 
 type View =
   | { screen: "dashboard" }
@@ -46,6 +47,11 @@ export default function App() {
       <AuthProvider>
         <AppShell />
       </AuthProvider>
+      {/* Wersja na kazdym ekranie (takze logowania) -- uzytkownik moze
+          podac, jakiego wydania uzywa (2026-10-21). */}
+      <footer className="app-version" title="Wersja aplikacji · identyfikator kompilacji">
+        {APP_VERSION_LABEL}
+      </footer>
     </ErrorBoundary>
   );
 }

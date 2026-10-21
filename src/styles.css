@@ -734,3 +734,11 @@ tbody tr.row-dubel td:first-child {
   width: 100%;
   resize: vertical;
 }
+
+/* Wersja aplikacji (2026-10-21) -- dyskretnie pod trescia kazdego ekranu. */
+.app-version {
+  text-align: center;
+  color: var(--muted);
+  font-size: 11px;
+  padding: 16px 16px 24px;
+}
