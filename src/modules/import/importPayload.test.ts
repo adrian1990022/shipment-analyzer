@@ -59,15 +59,17 @@ describe("buildImportPayload", () => {
           recentSkippedRows: 1,
           noDateRows: 1,
           cutoffAt: null,
-          groupCounts: { P1: 2, P2: 0, P3: 0, COY004: 0 },
+          groupCounts: { P1: 2, P2: 0, P3: 0, COY004: 0, NIEPRZYPISANE: 0 },
+          przypisanieCounts: { baza: 2, brak_w_bazie: 0, nieznana_trasa: 0 },
+          bezSortujacegoRows: 0,
+          routeBaseUploadedAt: null,
           panoramaFilename: "p.xlsx",
           sherlocFilename: "s.xlsx",
         },
         shipments: [
           shipment({ shipmentId: "1", lastPhyCpDt: isoLocal(2026, 9, 26) }),
-          shipment({ shipmentId: "2", lastPhyCpDt: isoLocal(2026, 9, 28) }),
+          shipment({ shipmentId: "2", lastPhyCpDt: isoLocal(2026, 9, 28), przypisanie: "brak_w_bazie" }),
         ],
-        unmappedChuteIds: ["X"],
       },
       NOW
     );
@@ -80,9 +82,10 @@ describe("buildImportPayload", () => {
       unmatched_rows: 1,
       unmapped_rows: 1,
       today_rows: 2,
-      group_counts: { P1: 2, P2: 0, P3: 0, COY004: 0 },
+      group_counts: { P1: 2, P2: 0, P3: 0, COY004: 0, NIEPRZYPISANE: 0 },
     });
     expect(payload.p_shipments.map((r) => r.shipment_id)).toEqual(["1", "2"]);
+    expect(payload.p_shipments.map((r) => r.przypisanie)).toEqual(["baza", "brak_w_bazie"]);
     expect(payload.p_prune_before).toBe("2026-09-26");
   });
 });

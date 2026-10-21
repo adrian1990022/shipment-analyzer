@@ -28,6 +28,7 @@ function fromRow(row: ShipmentRow & { id: number }): Shipment {
     grupa: row.grupa,
     sortujacy: row.sortujacy,
     wystapilo: row.wystapilo,
+    przypisanie: row.przypisanie ?? null,
   };
 }
 
@@ -40,7 +41,7 @@ export async function fetchShipments(): Promise<Shipment[]> {
       supabase
         .from("shipments")
         .select(
-          "shipment_id, remarks, hwx, last_phy_cp, last_phy_cp_dt, weight_dimension, shp_calc_wgt, shp_tot_pcs, consignee_name, chute_id, receiver_name, rcvr_addr1, rcvr_postcode, rcvr_city, trasa, grupa, sortujacy, wystapilo, import_id, id"
+          "shipment_id, remarks, hwx, last_phy_cp, last_phy_cp_dt, weight_dimension, shp_calc_wgt, shp_tot_pcs, consignee_name, chute_id, receiver_name, rcvr_addr1, rcvr_postcode, rcvr_city, trasa, grupa, sortujacy, wystapilo, przypisanie, import_id, id"
         )
         .order("id")
     );

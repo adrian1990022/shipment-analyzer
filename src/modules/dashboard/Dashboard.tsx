@@ -1,5 +1,5 @@
 import type { Grupa, Shipment } from "../../types/shipment";
-import { GRUPY, countByGrupa } from "./grouping";
+import { GRUPY, countByGrupa, grupaLabel } from "./grouping";
 
 export function Dashboard({
   shipments,
@@ -19,7 +19,7 @@ export function Dashboard({
       <div className="tiles">
         {GRUPY.map((grupa) => (
           <button key={grupa} className="tile" onClick={() => onSelectGrupa(grupa)}>
-            <span className="tile-title">{grupa}</span>
+            <span className="tile-title">{grupaLabel(grupa)}</span>
             <span className="tile-count">{counts[grupa]}</span>
           </button>
         ))}

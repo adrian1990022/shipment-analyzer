@@ -1,5 +1,5 @@
 import type { Grupa, Shipment } from "../../types/shipment";
-import { shipmentsForSorter, shipmentsInGrupa, trasyInSorter } from "./grouping";
+import { shipmentsForSorter, shipmentsInGrupa, sorterLabel, trasyInSorter } from "./grouping";
 
 export function TrasaListView({
   shipments,
@@ -25,7 +25,7 @@ export function TrasaListView({
         ← {grupa}
       </button>
       <h1>
-        {grupa} / sortujący {sortujacy}
+        {grupa} / sortujący {sorterLabel(sortujacy)}
       </h1>
       {trasy.length === 0 && <p className="hint">Brak tras dla tego sortującego.</p>}
       <div className="tiles">

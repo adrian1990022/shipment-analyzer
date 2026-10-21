@@ -95,12 +95,15 @@ export function RoutesAdmin() {
     <div className="screen">
       <h1>Dane referencyjne (trasy)</h1>
       <p className="hint">
-        Mapowanie Chute ID → Trasa → Grupa kafelka. Chute ID = COY004 jest obslugiwane osobno i nie
-        wymaga wpisu tutaj. Przypisanie sortującego do trasy zarządzasz w zakładce "Sortujący".
+        Od 2026-10-21 trasa przesyłki pochodzi z bazy przypisań tras (ekran Import), nie z Chute ID.
+        Ta tabela ustala już tylko grupę kafelka (P1/P2/P3) dla kodu trasy — trasa z bazy, której tu
+        nie ma, trafia do kafelka „Nieprzypisane”. Trasy z „O” na 3. miejscu (WAOA…) zawsze trafiają
+        do COY004 i nie wymagają wpisu. Przypisanie sortującego do trasy zarządzasz w zakładce
+        "Sortujący".
       </p>
       <p className="hint">
-        Ten sam Chute ID możesz przypisać do kilku tras — przesyłki z tej bramy trafią wtedy na
-        każdą z nich. Takie wiersze (dubel) są podświetlone na czerwono.
+        Chute ID i dubel (ten sam Chute ID przy kilku trasach, podświetlony na czerwono) nie wpływają
+        już na przypisanie przesyłek.
       </p>
 
       <form className="card" onSubmit={handleSubmit}>

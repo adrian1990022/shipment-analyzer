@@ -48,6 +48,7 @@ export function shipment(overrides: Partial<Shipment> = {}): Shipment {
     grupa: "P1",
     sortujacy: "E",
     wystapilo: 1,
+    przypisanie: "baza",
     ...overrides,
   };
 }

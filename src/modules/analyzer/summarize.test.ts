@@ -39,7 +39,7 @@ describe("summarize", () => {
       sherlocFilename: "s.xlsx",
     });
 
-    expect(result.groupCounts).toEqual({ P1: 2, P2: 1, P3: 1, COY004: 0 });
+    expect(result.groupCounts).toEqual({ P1: 2, P2: 1, P3: 1, COY004: 0, NIEPRZYPISANE: 0 });
   });
 
   it("COY004 liczy sie osobno od P1/P2/P3", () => {
@@ -68,7 +68,27 @@ describe("summarize", () => {
       sherlocFilename: "s.xlsx",
     });
 
-    expect(result.groupCounts).toEqual({ P1: 0, P2: 0, P3: 0, COY004: 0 });
+    expect(result.groupCounts).toEqual({ P1: 0, P2: 0, P3: 0, COY004: 0, NIEPRZYPISANE: 0 });
     expect(result.resultRows).toBe(0);
+  });
+
+  it("przenosi liczniki przypisania, brak sortujacego i date bazy; NIEPRZYPISANE liczone osobno", () => {
+    const result = summarize({
+      totalRows: 2,
+      matchedRows: 2,
+      unmatchedRows: 0,
+      unmappedRows: 1,
+      shipments: [shipment({ grupa: "P1" }), shipment({ grupa: "NIEPRZYPISANE", trasa: "", przypisanie: "brak_w_bazie" })],
+      przypisanieCounts: { baza: 1, brak_w_bazie: 1, nieznana_trasa: 0 },
+      bezSortujacegoRows: 1,
+      routeBaseUploadedAt: "2026-10-21T05:00:00.000Z",
+      panoramaFilename: "p.xlsx",
+      sherlocFilename: "s.xlsx",
+    });
+
+    expect(result.groupCounts.NIEPRZYPISANE).toBe(1);
+    expect(result.przypisanieCounts).toEqual({ baza: 1, brak_w_bazie: 1, nieznana_trasa: 0 });
+    expect(result.bezSortujacegoRows).toBe(1);
+    expect(result.routeBaseUploadedAt).toBe("2026-10-21T05:00:00.000Z");
   });
 });

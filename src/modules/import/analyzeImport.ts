@@ -7,12 +7,14 @@ import { filterByScanCutoff } from "../dateFilter/filterByScanCutoff";
 import { dedupeByShipmentId } from "../dedup/dedupeByShipmentId";
 import { mapRoutes } from "../mapper/mapRoutes";
 import { summarize } from "../analyzer/summarize";
-import type { ImportResult, RouteRef } from "../../types/shipment";
+import { toLocalDateKey } from "../normalizer/normalize";
+import type { ImportResult, RouteBaseRef, RouteRef } from "../../types/shipment";
 
 export class PipelineError extends Error {}
 
 // Dane referencyjne potrzebne do mapowania (routes + przypisania
-// sortujacych). Wstrzykiwane z zewnatrz jako funkcja ladujaca, zeby ten
+// sortujacych + baza przypisan tras; routeBase = null, gdy bazy nie
+// wgrano). Wstrzykiwane z zewnatrz jako funkcja ladujaca, zeby ten
 // modul byl CZYSTY (bez Supabase): shipment laduje je z wlasnej bazy
 // (pipeline.ts), a kurier_appp -- ktory ma kopie tego modulu
 // (scripts/sync-shipment-pipeline.mjs w kurier_appp) -- przez swoja funkcje
@@ -20,6 +22,29 @@ export class PipelineError extends Error {}
 export interface ReferenceData {
   routes: RouteRef[];
   sorterNameByTrasa: Map<string, string>;
+  routeBase: RouteBaseRef | null;
+}
+
+function formatDayMonthYear(dateKey: string): string {
+  const [y, m, d] = dateKey.split("-");
+  return `${d}.${m}.${y}`;
+}
+
+// Decyzja Adriana 2026-10-21: bez bazy przypisan tras albo z baza nie z
+// dzisiaj (dzien wg zegara urzadzenia = czas polski) importu nie ma --
+// trasy pochodza wylacznie z bazy. Ta sama regula jest w bazie
+// (import_shipments, migracja 0016).
+export function assertRouteBaseCurrent(routeBase: RouteBaseRef | null, now: Date = new Date()): RouteBaseRef {
+  if (!routeBase) {
+    throw new PipelineError("Baza przypisań tras nie została jeszcze wgrana — wgraj ją przed importem przesyłek.");
+  }
+  const baseDay = toLocalDateKey(routeBase.uploadedAt);
+  if (baseDay !== toLocalDateKey(now.toISOString())) {
+    throw new PipelineError(
+      `Baza przypisań tras jest z ${baseDay ? formatDayMonthYear(baseDay) : "nieznanego dnia"} — wgraj dzisiejszą bazę przed importem przesyłek.`
+    );
+  }
+  return routeBase;
 }
 
 // Caly pipeline az do momentu akceptacji dziala WYLACZNIE w pamieci
@@ -30,7 +55,8 @@ export async function analyzeImport(
   fileA: File,
   fileB: File,
   cutoff: Date,
-  loadReference: () => Promise<ReferenceData>
+  loadReference: () => Promise<ReferenceData>,
+  now: Date = new Date()
 ): Promise<ImportResult> {
   const rowsA = await readWorkbookRows(fileA);
   const rowsB = await readWorkbookRows(fileB);
@@ -67,6 +93,7 @@ export async function analyzeImport(
   }
 
   const reference = await loadReference();
+  const routeBase = assertRouteBaseCurrent(reference.routeBase, now);
 
   const { rows: joinedRows, matchedCount, unmatchedCount } = joinReports(panoramaRows, sherlocRows);
   // Najpierw deduplikacja (reprezentant = najnowszy skan), potem regula
@@ -75,25 +102,31 @@ export async function analyzeImport(
   const { rows: dedupedAll, occurrenceCounts } = dedupeByShipmentId(joinedRows);
   const { keptRows: dedupedRows, recentCount, noDateCount } = filterByScanCutoff(dedupedAll, cutoff);
 
-  const { shipments, unmappedChuteIds, unmappedRowCount } = mapRoutes(
+  const { shipments, przypisanieCounts, bezSortujacegoRows } = mapRoutes(
     dedupedRows,
     reference.routes,
     occurrenceCounts,
-    reference.sorterNameByTrasa
+    reference.sorterNameByTrasa,
+    routeBase.routeByAwb
   );
 
   const summary = summarize({
     totalRows: panoramaRows.length,
     matchedRows: matchedCount,
     unmatchedRows: unmatchedCount,
-    unmappedRows: unmappedRowCount,
+    // "Bez trasy" od 2026-10-21 = przesylki NIEPRZYPISANE (brak w bazie +
+    // nieznana trasa) -- nie wypadaja juz z wyniku, kolumna imports.unmapped_rows.
+    unmappedRows: przypisanieCounts.brak_w_bazie + przypisanieCounts.nieznana_trasa,
     recentSkippedRows: recentCount,
     noDateRows: noDateCount,
     cutoffAt: cutoff.toISOString(),
     shipments,
+    przypisanieCounts,
+    bezSortujacegoRows,
+    routeBaseUploadedAt: routeBase.uploadedAt,
     panoramaFilename,
     sherlocFilename,
   });
 
-  return { summary, shipments, unmappedChuteIds };
+  return { summary, shipments };
 }

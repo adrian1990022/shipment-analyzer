@@ -1,19 +1,39 @@
 import type { Grupa, Shipment } from "../../types/shipment";
 import { isShipmentHandled, naturalCompare } from "../normalizer/normalize";
 
-export const GRUPY: Grupa[] = ["P1", "P2", "P3", "COY004"];
+export const GRUPY: Grupa[] = ["P1", "P2", "P3", "COY004", "NIEPRZYPISANE"];
 
-// P1/P3 maja jawne przypisanie sortujacego -> trasa (sorters/sorter_routes,
-// patrz SorterRepository) i dostaja dodatkowy poziom nawigacji (sortujacy
-// -> trasa -> tabela). P2 (i COY004) zostaja przy plaskim ukladzie
-// sortujacy -> tabela, bo sortujacy jest tam nadal wyliczany z 3. litery
-// trasy, nie jawnie przypisany.
+export function grupaLabel(grupa: Grupa): string {
+  return grupa === "NIEPRZYPISANE" ? "Nieprzypisane" : grupa;
+}
+
+// sortujacy "" = trasa bez przypisanego sortujacego (od 2026-10-21 bez
+// fallbacku z 3. litery trasy).
+export function sorterLabel(sortujacy: string): string {
+  return sortujacy || "Brak sortującego";
+}
+
+// Uklad kafelka grupy (2026-10-21):
+//   sortujacy -- P1/P2/P3: kafelki sortujacych,
+//   trasa     -- COY004: kafelki tras (trasy "O" nie maja sortujacych,
+//                decyzja Adriana), potem tabela,
+//   lista     -- NIEPRZYPISANE: od razu lista przesylek z powodem.
+export type GroupLayout = "sortujacy" | "trasa" | "lista";
+
+export function groupLayout(grupa: Grupa): GroupLayout {
+  if (grupa === "COY004") return "trasa";
+  if (grupa === "NIEPRZYPISANE") return "lista";
+  return "sortujacy";
+}
+
+// P1/P3: po sortujacym dodatkowy poziom nawigacji (sortujacy -> trasa ->
+// tabela). P2 zostaje przy plaskim ukladzie sortujacy -> tabela.
 export function hasTrasaLevel(grupa: Grupa): boolean {
   return grupa === "P1" || grupa === "P3";
 }
 
 export function countByGrupa(shipments: Shipment[]): Record<Grupa, number> {
-  const counts: Record<Grupa, number> = { P1: 0, P2: 0, P3: 0, COY004: 0 };
+  const counts: Record<Grupa, number> = { P1: 0, P2: 0, P3: 0, COY004: 0, NIEPRZYPISANE: 0 };
   for (const s of shipments) counts[s.grupa] += 1;
   return counts;
 }

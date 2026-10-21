@@ -11,7 +11,7 @@ import { Dashboard } from "./modules/dashboard/Dashboard";
 import { GroupView } from "./modules/dashboard/GroupView";
 import { TrasaListView } from "./modules/dashboard/TrasaListView";
 import { SorterTable } from "./modules/dashboard/SorterTable";
-import { hasTrasaLevel } from "./modules/dashboard/grouping";
+import { groupLayout, hasTrasaLevel } from "./modules/dashboard/grouping";
 import { ImportScreen } from "./modules/import/ImportScreen";
 import { RoutesAdmin } from "./modules/referenceData/RoutesAdmin";
 import { SortersAdmin } from "./modules/sorters/SortersAdmin";
@@ -29,7 +29,8 @@ type View =
   | { screen: "dashboard" }
   | { screen: "group"; grupa: Grupa }
   | { screen: "sorter"; grupa: Grupa; sortujacy: string }
-  | { screen: "trasa"; grupa: Grupa; sortujacy: string; trasa: string }
+  // sortujacy null = COY004 (kafelki tras bez poziomu sortujacego).
+  | { screen: "trasa"; grupa: Grupa; sortujacy: string | null; trasa: string }
   | { screen: "import" }
   | { screen: "reference-data" }
   | { screen: "sorters" }
@@ -185,20 +186,36 @@ function AppShell() {
         />
       )}
 
-      {view.screen === "group" && (
+      {/* NIEPRZYPISANE (2026-10-21): od razu lista przesylek z powodem --
+          nie maja trasy z bazy albo maja trase spoza routes. */}
+      {view.screen === "group" && groupLayout(view.grupa) === "lista" && (
+        <SorterTable
+          shipments={shipments}
+          grupa={view.grupa}
+          sortujacy={null}
+          handledMap={handledMap}
+          onToggleHandled={handleToggleHandled}
+          onBack={nav.goBack}
+        />
+      )}
+
+      {view.screen === "group" && groupLayout(view.grupa) !== "lista" && (
         <GroupView
           shipments={shipments}
           grupa={view.grupa}
+          handledMap={handledMap}
           onSelectSortujacy={(sortujacy) =>
             nav.navigate({ screen: "sorter", grupa: view.grupa, sortujacy })
+          }
+          onSelectTrasa={(trasa) =>
+            nav.navigate({ screen: "trasa", grupa: view.grupa, sortujacy: null, trasa })
           }
           onBack={nav.goBack}
         />
       )}
 
-      {/* P1/P3: sortujacy ma jawne przypisanie bramy -> dodatkowy poziom
-          "trasa" przed tabela. P2/COY004: sortujacy nadal wyliczany z 3.
-          litery trasy -> od razu tabela, jak dotychczas. */}
+      {/* P1/P3: po sortujacym dodatkowy poziom "trasa" przed tabela. P2: od
+          razu tabela. COY004 nie ma poziomu sortujacego (kafelki tras). */}
       {view.screen === "sorter" &&
         (hasTrasaLevel(view.grupa) ? (
           <TrasaListView

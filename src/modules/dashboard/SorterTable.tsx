@@ -1,10 +1,17 @@
 import { useMemo, useState } from "react";
 import type { Grupa, Shipment } from "../../types/shipment";
-import { shipmentsForSorter, shipmentsForTrasa, shipmentsInGrupa } from "./grouping";
+import { grupaLabel, shipmentsForSorter, shipmentsForTrasa, shipmentsInGrupa, sorterLabel } from "./grouping";
 import { parseWeightDimension } from "./parseWeightDimension";
 import { formatTimeAndDate, isShipmentHandled, toLocalDateKey } from "../normalizer/normalize";
 
 type SortKey = "trasa" | "consigneeName" | "lastPhyCpDt";
+
+// Powod braku przypisania (kafelek "Nieprzypisane", 2026-10-21).
+function powodNieprzypisania(s: Shipment): string | null {
+  if (s.przypisanie === "brak_w_bazie") return "Brak numeru w bazie przypisań tras";
+  if (s.przypisanie === "nieznana_trasa") return `Nieznana trasa ${s.trasa} (brak w Danych referencyjnych)`;
+  return null;
+}
 
 function WeightDimensionCell({ value }: { value: string }) {
   const parsed = parseWeightDimension(value);
@@ -51,8 +58,9 @@ export function SorterTable({
 }: {
   shipments: Shipment[];
   grupa: Grupa;
-  sortujacy: string;
-  // Podany tylko dla P1/P3 (poziom trasa) -- zawezanie do jednej trasy.
+  // null = bez zawezania do sortujacego (COY004 po trasie, NIEPRZYPISANE).
+  sortujacy: string | null;
+  // Podany dla P1/P3 i COY004 (poziom trasa) -- zawezanie do jednej trasy.
   trasa?: string;
   handledMap: Map<string, boolean>;
   onToggleHandled: (shipment: Shipment) => void;
@@ -68,7 +76,7 @@ export function SorterTable({
 
   const rows = useMemo(() => {
     const inGroup = shipmentsInGrupa(shipments, grupa);
-    let forSorter = shipmentsForSorter(inGroup, sortujacy);
+    let forSorter = sortujacy === null ? inGroup : shipmentsForSorter(inGroup, sortujacy);
     if (trasa) forSorter = shipmentsForTrasa(forSorter, trasa);
     const sorted = [...forSorter].sort((a, b) => {
       // Obsluzone zawsze na samym dole, niezaleznie od wybranej kolumny
@@ -115,11 +123,17 @@ export function SorterTable({
   return (
     <div className="screen">
       <button className="back" onClick={onBack}>
-        ← {trasa ? `sortujący ${sortujacy}` : `Grupa ${grupa}`}
+        ←{" "}
+        {trasa && sortujacy !== null
+          ? `sortujący ${sorterLabel(sortujacy)}`
+          : grupa === "NIEPRZYPISANE"
+            ? "Dashboard"
+            : `Grupa ${grupa}`}
       </button>
       <h1>
-        {grupa} / {sortujacy}
-        {trasa ? ` / ${trasa}` : ""}
+        {[grupaLabel(grupa), sortujacy !== null ? sorterLabel(sortujacy) : null, trasa ?? null]
+          .filter(Boolean)
+          .join(" / ")}
       </h1>
       {total > 0 && (
         <div className={`handled-counter${handledCount === total ? " handled-counter--complete" : ""}`}>
@@ -147,8 +161,8 @@ export function SorterTable({
           const isHandled = isShipmentHandled(s, handledMap);
           return (
             <article
-              // Klucz z trasa: przy dublu Chute ID ta sama przesylka moze byc
-              // na liscie dwa razy (P2/COY004 lacza kilka tras).
+              // Klucz z trasa: dawniej (dubel Chute ID, do 2026-10-21) ta sama
+              // przesylka mogla byc na liscie dwa razy; dzis nieszkodliwy.
               key={`${s.shipmentId}|${s.trasa}`}
               className={`shipment-card${isHandled ? " shipment-card--handled" : ""}`}>
               <div className="shipment-card-head">
@@ -192,6 +206,18 @@ export function SorterTable({
                   </div>
                 )}
               </dl>
+              {powodNieprzypisania(s) && (
+                <dl className="shipment-card-details shipment-card-row">
+                  <div className="shipment-card-grow">
+                    <dt>Powód</dt>
+                    <dd>{powodNieprzypisania(s)}</dd>
+                  </div>
+                  <div>
+                    <dt>Chute ID</dt>
+                    <dd>{s.chuteId || "—"}</dd>
+                  </div>
+                </dl>
+              )}
               <div className="shipment-card-foot">
                 <HandledSwitch checked={isHandled} disabled={!shipmentDate} onChange={() => onToggleHandled(s)} />
                 <span className="shipment-card-status">{isHandled ? "✓ Obsłużono" : "Obsłużono"}</span>

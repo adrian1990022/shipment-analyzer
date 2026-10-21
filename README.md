@@ -117,8 +117,12 @@ Walidacja (pliki wybrane, format czytelny)
   → Join (Panorama.Shipment ID = Sherloc.HWB No)
   → Deduplikacja po Shipment ID (wiersz z najnowszym skanem, liczba wystąpień w polu "wystapilo")
   → Reguła 15 minut (pomija przesyłki z ostatnim skanem w ciągu 15 min przed godziną wpisaną przy imporcie; starsze — także z poprzednich dni — zostają)
-  → Mapowanie tras (Chute ID → Trasa → Grupa, przez tabelę routes)
-  → Przypisanie sortującego (jawnie z routes, fallback: 3. litera trasy)
+  → [wymagana baza przypisań tras wgrana DZISIAJ — inaczej import zablokowany]
+  → Mapowanie tras (od 2026-10-21): Shipment ID → baza przypisań tras (Route | AWB/BkgRef) → Trasa;
+      brak numeru w bazie → kafelek „Nieprzypisane”; trasa z „O” na 3. miejscu → COY004;
+      trasa znana w routes → grupa P1/P2/P3; trasa spoza routes → „Nieprzypisane” (nieznana trasa).
+      Chute ID NIE wyznacza już trasy.
+  → Przypisanie sortującego (tylko z sorter_routes; brak → „Brak sortującego”, bez fallbacku z 3. litery)
   → Podsumowanie (liczniki, do wglądu przed zapisem)
   → [akceptacja użytkownika]
   → Zapis: JEDNO wywołanie funkcji bazy import_shipments (migracja 0011) — wpis w imports + podmiana shipments + czyszczenie shipment_actions, w jednej transakcji (wszystko albo nic)
@@ -128,17 +132,27 @@ Walidacja (pliki wybrane, format czytelny)
 Do momentu akceptacji nic nie jest zapisywane — analiza
 (`src/modules/import/analyzeImport.ts`) działa wyłącznie w pamięci. Jest
 CZYSTA (bez Supabase): dane referencyjne (`routes` + przypisania
-sortujących) dostaje przez wstrzykniętą funkcję — w shipment ładuje je
+sortujących + baza przypisań tras) dostaje przez wstrzykniętą funkcję — w shipment ładuje je
 `pipeline.ts` z własnej bazy. Argumenty zapisu buduje
 `src/modules/import/importPayload.ts`.
 
-**Kopia w kurier_appp**: panel admina kuriera (Import danych → Przesyłki)
-wgrywa raporty tą samą logiką — ma WYGENEROWANĄ kopię modułów analizy
+**Baza przypisań tras** (migracja 0016): plik Excel/CSV z kolumnami „Route”
+i „AWB/BkgRef”, wgrywany na ekranie Import (karta „Baza przypisań tras”) albo
+w kurier_appp. Czytanie i walidacja: `src/modules/routeBase/parseRouteBase.ts`
+(puste wartości pomijane, identyczne pary scalane, numer z różnymi trasami
+albo w zapisie naukowym blokuje zapis). Zapis: funkcja bazy
+`replace_route_assignments` — podmienia CAŁĄ bazę w jednej transakcji i
+sprawdza dane drugi raz; przy błędzie poprzednia baza zostaje. Funkcja
+`import_shipments` odrzuca import bez dzisiejszej bazy (druga linia obrony).
+
+**Kopia w kurier_appp**: panel admina kuriera (zakładka „Niezeskanowane
+przesyłki”) wgrywa raporty i bazę przypisań tras tą samą logiką — ma WYGENEROWANĄ kopię modułów analizy
 (`kurier_appp/pwa/src/shipmentPipeline/`) i zapisuje przez swoją funkcję
 serwerową (`api/shipment-import.js`, kluczem service_role po sprawdzeniu
 roli admina) tą samą funkcją bazy `import_shipments`. **Po każdej zmianie
 modułów analizy (parser, normalizer, joiner, dateFilter, dedup, mapper,
-analyzer, import/analyzeImport, import/importPayload, types) uruchom w
+analyzer, import/analyzeImport, import/importPayload, routeBase/parseRouteBase,
+types) uruchom w
 kurier_appp/pwa: `node scripts/sync-shipment-pipeline.mjs`** — inaczej
 import z kuriera będzie działał po staremu.
 

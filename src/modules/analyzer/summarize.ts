@@ -1,10 +1,11 @@
-import type { Grupa, ImportSummary, Shipment } from "../../types/shipment";
+import type { Grupa, ImportSummary, Przypisanie, Shipment } from "../../types/shipment";
 
 const EMPTY_GROUP_COUNTS: Record<Grupa, number> = {
   P1: 0,
   P2: 0,
   P3: 0,
   COY004: 0,
+  NIEPRZYPISANE: 0,
 };
 
 export function summarize(input: {
@@ -16,6 +17,9 @@ export function summarize(input: {
   noDateRows?: number;
   cutoffAt?: string | null;
   shipments: Shipment[];
+  przypisanieCounts?: Record<Przypisanie, number>;
+  bezSortujacegoRows?: number;
+  routeBaseUploadedAt?: string | null;
   panoramaFilename: string;
   sherlocFilename: string;
 }): ImportSummary {
@@ -34,6 +38,9 @@ export function summarize(input: {
     noDateRows: input.noDateRows ?? 0,
     cutoffAt: input.cutoffAt ?? null,
     groupCounts,
+    przypisanieCounts: input.przypisanieCounts ?? { baza: 0, brak_w_bazie: 0, nieznana_trasa: 0 },
+    bezSortujacegoRows: input.bezSortujacegoRows ?? 0,
+    routeBaseUploadedAt: input.routeBaseUploadedAt ?? null,
     panoramaFilename: input.panoramaFilename,
     sherlocFilename: input.sherlocFilename,
   };

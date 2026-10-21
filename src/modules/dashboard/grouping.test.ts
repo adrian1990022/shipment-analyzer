@@ -3,7 +3,10 @@ import { shipment } from "../../test/fixtures";
 import { buildHandledKey } from "../normalizer/normalize";
 import {
   countByGrupa,
+  groupLayout,
+  grupaLabel,
   hasTrasaLevel,
+  sorterLabel,
   shipmentsForSorter,
   shipmentsForTrasa,
   shipmentsInGrupa,
@@ -20,6 +23,23 @@ describe("hasTrasaLevel", () => {
   });
 });
 
+describe("groupLayout / etykiety (2026-10-21)", () => {
+  it("P1/P2/P3 po sortujacym, COY004 po trasie, NIEPRZYPISANE od razu lista", () => {
+    expect(groupLayout("P1")).toBe("sortujacy");
+    expect(groupLayout("P2")).toBe("sortujacy");
+    expect(groupLayout("P3")).toBe("sortujacy");
+    expect(groupLayout("COY004")).toBe("trasa");
+    expect(groupLayout("NIEPRZYPISANE")).toBe("lista");
+  });
+
+  it("etykiety kafelka i braku sortujacego", () => {
+    expect(grupaLabel("NIEPRZYPISANE")).toBe("Nieprzypisane");
+    expect(grupaLabel("P1")).toBe("P1");
+    expect(sorterLabel("")).toBe("Brak sortującego");
+    expect(sorterLabel("Jan Kowalski")).toBe("Jan Kowalski");
+  });
+});
+
 describe("countByGrupa / shipmentsInGrupa", () => {
   it("liczy i filtruje po P1/P2/P3/COY004 niezaleznie", () => {
     const shipments = [
@@ -27,9 +47,11 @@ describe("countByGrupa / shipmentsInGrupa", () => {
       shipment({ grupa: "P2" }),
       shipment({ grupa: "P2" }),
       shipment({ grupa: "COY004" }),
+      shipment({ grupa: "NIEPRZYPISANE", trasa: "", przypisanie: "brak_w_bazie" }),
     ];
 
-    expect(countByGrupa(shipments)).toEqual({ P1: 1, P2: 2, P3: 0, COY004: 1 });
+    expect(countByGrupa(shipments)).toEqual({ P1: 1, P2: 2, P3: 0, COY004: 1, NIEPRZYPISANE: 1 });
+    expect(shipmentsInGrupa(shipments, "NIEPRZYPISANE")).toHaveLength(1);
     expect(shipmentsInGrupa(shipments, "P2")).toHaveLength(2);
     expect(shipmentsInGrupa(shipments, "P3")).toHaveLength(0);
   });

@@ -5,6 +5,33 @@ stanu aplikacji. Każdy wpis tutaj odpowiada jednemu commitowi w gita
 (`git log` pokaże dokładny diff; `git checkout <hash> -- .` albo
 `git revert <hash>` pozwala się cofnąć do/po danej zmianie).
 
+## 2026-10-21 — Baza przypisań tras zamiast Chute ID
+
+- **Trasa przesyłki pochodzi wyłącznie z bazy przypisań tras** (plik
+  „Route | AWB/BkgRef”, Shipment ID z Panoramy = AWB/BkgRef), dla wszystkich
+  przesyłek z Panoramy, w obu aplikacjach (decyzja Adriana). `mapRoutes.ts`:
+  numer spoza bazy → kafelek **„Nieprzypisane”** (przesyłka zostaje, bez
+  trasy i sortującego); trasa z „O” na 3. miejscu → **COY004**; trasa znana
+  w `routes` → jej grupa; trasa spoza `routes` → „Nieprzypisane” (nieznana
+  trasa, trasa zachowana). Chute ID, dubel i fallback sortującego z 3. litery
+  przestały działać — sortujący tylko z `sorter_routes`, inaczej „Brak
+  sortującego”.
+- **Import zablokowany** bez bazy albo z bazą nie z dzisiaj (analiza +
+  `import_shipments`).
+- **Karta „Baza przypisań tras”** na ekranie Import: status, liczba
+  rekordów, data; wgranie nowego pliku → podsumowanie walidacji → zapis
+  (zastępuje całą bazę). `routeBase/parseRouteBase.ts` (+ testy),
+  `repository/routeBaseRepository.ts` (+ testy), odczyt pliku
+  `readWorkbookRowsAsText` (bez utraty zer wiodących i cyfr długich numerów).
+- **Dashboard**: kafelek „Nieprzypisane” (lista z powodem i Chute ID),
+  COY004 grupowany po trasie (trasy „O” nie mają sortujących).
+- Podsumowanie importu: przypisane z bazy / brak w bazie / nieznana trasa /
+  bez sortującego + lista nieprzypisanych.
+- Baza: migracja `0016_baza_przypisan_tras.sql` — `route_assignments`,
+  `route_assignment_meta`, `replace_route_assignments` (wszystko albo
+  nic), `shipments.przypisanie`, grupa `NIEPRZYPISANE`, nowa wersja
+  `import_shipments`. Tylko admin (RLS), bez dostępu anon.
+
 ## 2026-10-13 — Lista obecności sortujących (ekran Import)
 
 - **Nowa karta „Lista obecności sortujących”** na ekranie Import

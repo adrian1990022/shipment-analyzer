@@ -38,6 +38,7 @@ describe("shipmentsRepository", () => {
               grupa: "P1",
               sortujacy: "E",
               wystapilo: 1,
+              przypisanie: "baza",
               import_id: 5,
             },
           ],
@@ -85,7 +86,10 @@ describe("shipmentsRepository", () => {
       recentSkippedRows: 0,
       noDateRows: 0,
       cutoffAt: null,
-      groupCounts: { P1: 1, P2: 0, P3: 0, COY004: 0 },
+      groupCounts: { P1: 1, P2: 0, P3: 0, COY004: 0, NIEPRZYPISANE: 0 },
+      przypisanieCounts: { baza: 1, brak_w_bazie: 0, nieznana_trasa: 0 },
+      bezSortujacegoRows: 0,
+      routeBaseUploadedAt: null,
       panoramaFilename: "panorama.xlsx",
       sherlocFilename: "sherloc.xlsx",
     };
@@ -93,7 +97,7 @@ describe("shipmentsRepository", () => {
     it("zapisuje JEDNYM wywolaniem funkcji bazy import_shipments i zwraca id importu", async () => {
       supabase.rpc.mockResolvedValueOnce({ data: 42, error: null });
 
-      const id = await saveImport({ summary, shipments: [shipment()], unmappedChuteIds: [] });
+      const id = await saveImport({ summary, shipments: [shipment()] });
 
       expect(id).toBe(42);
       expect(supabase.from).not.toHaveBeenCalled();
@@ -109,7 +113,7 @@ describe("shipmentsRepository", () => {
 
     it("blad bazy -> funkcja rzuca", async () => {
       supabase.rpc.mockResolvedValueOnce({ data: null, error: new Error("rpc failed") });
-      await expect(saveImport({ summary, shipments: [], unmappedChuteIds: [] })).rejects.toThrow("rpc failed");
+      await expect(saveImport({ summary, shipments: [] })).rejects.toThrow("rpc failed");
     });
   });
 });

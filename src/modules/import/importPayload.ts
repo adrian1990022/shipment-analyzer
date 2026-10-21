@@ -1,5 +1,5 @@
 import { toLocalDateKey } from "../normalizer/normalize";
-import type { Grupa, ImportResult, Shipment } from "../../types/shipment";
+import type { Grupa, ImportResult, Przypisanie, Shipment } from "../../types/shipment";
 
 // Wiersz tabeli shipments w ksztalcie, jaki przyjmuje funkcja bazy
 // import_shipments (migracja 0011) -- bez id/import_id/created_at, ktore
@@ -23,6 +23,7 @@ export interface ShipmentInsertRow {
   grupa: Grupa;
   sortujacy: string;
   wystapilo: number;
+  przypisanie: Przypisanie | null;
 }
 
 // Wiersz tabeli imports (metadane importu). today_rows to nazwa historyczna
@@ -67,6 +68,7 @@ export function toShipmentRow(shipment: Shipment): ShipmentInsertRow {
     grupa: shipment.grupa,
     sortujacy: shipment.sortujacy,
     wystapilo: shipment.wystapilo,
+    przypisanie: shipment.przypisanie,
   };
 }
 

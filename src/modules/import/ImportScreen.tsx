@@ -5,6 +5,7 @@ import { formatTimeHHmm } from "../normalizer/normalize";
 import { RECENT_SCAN_WINDOW_MINUTES, buildScanCutoff } from "../dateFilter/filterByScanCutoff";
 import { reportError } from "../monitoring/reportError";
 import { AttendanceImport } from "../attendance/AttendanceImport";
+import { RouteBaseCard, formatDateTime } from "../routeBase/RouteBaseCard";
 import type { ImportResult } from "../../types/shipment";
 
 type Stage =
@@ -19,7 +20,13 @@ const GROUP_LABELS: Record<string, string> = {
   P2: "P2",
   P3: "P3",
   COY004: "COY004",
+  NIEPRZYPISANE: "Nieprzypisane",
 };
+
+// Powod braku trasy na liscie nieprzypisanych w podsumowaniu.
+function powod(przypisanie: string | null): string {
+  return przypisanie === "nieznana_trasa" ? "trasa spoza Danych referencyjnych" : "brak numeru w bazie";
+}
 
 function currentTimeHHmm(): string {
   const now = new Date();
@@ -87,6 +94,10 @@ export function ImportScreen({ onSaved }: { onSaved: () => void }) {
   return (
     <div className="screen">
       <h1>Import raportow</h1>
+
+      {/* Baza przypisan tras (2026-10-21) -- trasy przesylek pochodza tylko
+          z niej; import ponizej wymaga bazy wgranej dzisiaj. */}
+      <RouteBaseCard />
 
       {(stage.kind === "picking" || stage.kind === "analyzing") && (
         <div className="card">
@@ -161,7 +172,8 @@ function ImportSummaryCard({
   onAccept: () => void;
   onReject: () => void;
 }) {
-  const { summary, unmappedChuteIds } = result;
+  const { summary, shipments } = result;
+  const nieprzypisane = shipments.filter((s) => s.grupa === "NIEPRZYPISANE");
   return (
     <div className="card">
       <h2>Podsumowanie importu</h2>
@@ -179,7 +191,13 @@ function ImportSummaryCard({
         )}
         <li>Pominiete -- brak daty ostatniego skanu: {summary.noDateRows}</li>
         <li>Przesylki w raporcie: {summary.resultRows}</li>
-        <li>Bez mapowania trasy (Chute ID spoza tabeli routes): {summary.unmappedRows}</li>
+        {summary.routeBaseUploadedAt && (
+          <li>Baza przypisan tras z: {formatDateTime(summary.routeBaseUploadedAt)}</li>
+        )}
+        <li>Trasa z bazy przypisan: {summary.przypisanieCounts.baza}</li>
+        <li>Nieprzypisane -- brak numeru w bazie: {summary.przypisanieCounts.brak_w_bazie}</li>
+        <li>Nieprzypisane -- trasa spoza Danych referencyjnych: {summary.przypisanieCounts.nieznana_trasa}</li>
+        <li>Z trasa, ale bez sortujacego: {summary.bezSortujacegoRows}</li>
       </ul>
 
       <table className="mini-table">
@@ -199,14 +217,33 @@ function ImportSummaryCard({
         </tbody>
       </table>
 
-      {unmappedChuteIds.length > 0 && (
-        <div className="warning">
-          <p>
-            Ponizsze Chute ID nie maja przypisanej trasy w tabeli referencyjnej i zostaly pominiete w
-            wyniku. Dodaj je w sekcji "Dane referencyjne", a nastepnie zaimportuj ponownie.
-          </p>
-          <p className="mono">{unmappedChuteIds.join(", ")}</p>
-        </div>
+      {nieprzypisane.length > 0 && (
+        <details className="warning">
+          <summary>
+            Nieprzypisane przesylki ({nieprzypisane.length}) -- zostana zapisane i beda widoczne na kafelku
+            „Nieprzypisane”
+          </summary>
+          <table className="mini-table">
+            <thead>
+              <tr>
+                <th>Shipment ID</th>
+                <th>Chute ID</th>
+                <th>Trasa</th>
+                <th>Powod</th>
+              </tr>
+            </thead>
+            <tbody>
+              {nieprzypisane.map((s) => (
+                <tr key={s.shipmentId}>
+                  <td className="mono">{s.shipmentId}</td>
+                  <td>{s.chuteId || "—"}</td>
+                  <td>{s.trasa || "—"}</td>
+                  <td>{powod(s.przypisanie)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </details>
       )}
 
       <p className="hint">

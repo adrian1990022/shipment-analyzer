@@ -1,93 +1,109 @@
 import type { JoinedRow } from "../joiner/joinReports";
 import { normalizeJoinKey, parseFlexibleDate, parseNumber } from "../normalizer/normalize";
-import type { Grupa, RouteRef, Shipment } from "../../types/shipment";
+import type { Grupa, Przypisanie, RouteRef, Shipment } from "../../types/shipment";
 
+// Kafelek COY004 (decyzja Adriana 2026-10-21): wszystkie trasy z "O" na
+// 3. miejscu kodu (WAOA, WAOB, ...) -- niezaleznie od tabeli routes.
 const COY004 = "COY004";
+const COY004_TRZECIA_LITERA = "O";
+
+export function isCoy004Trasa(trasa: string): boolean {
+  return trasa.charAt(2) === COY004_TRZECIA_LITERA;
+}
 
 export interface MapResult {
   shipments: Shipment[];
-  unmappedChuteIds: string[];
-  unmappedRowCount: number;
+  przypisanieCounts: Record<Przypisanie, number>;
+  // Przesylki z trasa, ale bez sortujacego w sorter_routes.
+  bezSortujacegoRows: number;
 }
 
-// Fallback, gdy trasa nie ma jawnego przypisania w sorter_routes:
-// MVP wylicza sortujacego z trzeciej litery trasy (regula biznesowa wprost
-// ze specyfikacji). Uzywana dla P2, COY004 i kazdej trasy bez przypisania.
-function sorterFromTrasa(trasa: string): string {
-  const upper = trasa.trim().toUpperCase();
-  return upper.charAt(2) || upper || "?";
-}
-
-// Mapper jest jedynym modulem, ktory zna tabele routes. Parser i Joiner
-// dzialaja bez tej wiedzy (patrz komentarze w tych modulach).
+// Mapper jest jedynym modulem, ktory przypisuje przesylce trase, grupe
+// (kafelek) i sortujacego.
+//
+// Od 2026-10-21 (decyzja Adriana) zrodlem trasy jest WYLACZNIE baza
+// przypisan tras (routeByAwb: znormalizowany numer -> trasa, plik "Route |
+// AWB/BkgRef"), dla wszystkich przesylek z Panoramy:
+//
+//   numer nie w bazie       -> trasa "", NIEPRZYPISANE (brak_w_bazie),
+//   trasa z "O" na 3. msc   -> COY004 (baza),
+//   trasa w routes          -> grupa z routes (baza),
+//   trasa spoza routes      -> trasa zostaje, NIEPRZYPISANE (nieznana_trasa),
+//   sortujacy               -> tylko z sorter_routes, inaczej "" (brak).
+//
+// Chute ID nie wyznacza juz trasy (dawny dubel i specjalny Chute ID COY004
+// przestaly dzialac), nie ma tez fallbacku sortujacego z 3. litery trasy.
+// Tabela routes sluzy tylko do ustalenia grupy (P1/P2/P3) po kodzie trasy.
+// Przesylka bez przypisania NIE wypada z wyniku -- ma byc widoczna.
+//
 // occurrenceCounts pochodzi z kroku deduplikacji (dedupeByShipmentId) --
 // Mapper tylko przepisuje je do pola "wystapilo", nie liczy ich sam.
-// sorterNameByTrasa (trasa -> nazwa sortujacego) pochodzi z SorterRepository
-// -- to jest jedyne zrodlo jawnego przypisania sortujacego, routes juz go
-// nie zna.
 export function mapRoutes(
   rows: JoinedRow[],
   routes: RouteRef[],
   occurrenceCounts: Map<string, number>,
-  sorterNameByTrasa: Map<string, string>
+  sorterNameByTrasa: Map<string, string>,
+  routeByAwb: Map<string, string>
 ): MapResult {
-  // Jeden Chute ID moze byc przypisany do KILKU tras ("dubel", decyzja
-  // Adriana 2026-09-25, opcja A): przesylka z takiej bramy trafia na
-  // KAZDA z tych tras -- osobny rekord Shipment per trasa, ten sam
-  // shipmentId (stan "Obsluzono" jest wiec wspolny dla wszystkich kopii).
-  const routesByChuteId = new Map<string, RouteRef[]>();
+  // Trasa -> grupa. Trasa ma jedna grupe (sprawdzone na danych 2026-10-21);
+  // przy niespojnosci w routes wygrywa pierwszy wpis.
+  const grupaByTrasa = new Map<string, Grupa>();
   for (const route of routes) {
-    const key = normalizeJoinKey(route.chuteId);
-    const list = routesByChuteId.get(key) ?? [];
-    list.push(route);
-    routesByChuteId.set(key, list);
+    const trasa = route.trasa.trim().toUpperCase();
+    if (!grupaByTrasa.has(trasa)) grupaByTrasa.set(trasa, route.grupa);
   }
 
   const shipments: Shipment[] = [];
-  const unmapped = new Set<string>();
-  let unmappedRowCount = 0;
+  const przypisanieCounts: Record<Przypisanie, number> = { baza: 0, brak_w_bazie: 0, nieznana_trasa: 0 };
+  let bezSortujacegoRows = 0;
 
   for (const { panorama, sherloc } of rows) {
-    const chuteId = panorama.chuteId.trim();
-    const chuteKey = normalizeJoinKey(chuteId);
+    const trasaZBazy = routeByAwb.get(normalizeJoinKey(panorama.shipmentId));
 
-    let targets: { trasa: string; grupa: Grupa }[];
-
-    if (chuteKey === COY004) {
-      targets = [{ trasa: COY004, grupa: COY004 }];
+    let trasa: string;
+    let grupa: Grupa;
+    let przypisanie: Przypisanie;
+    if (trasaZBazy === undefined) {
+      trasa = "";
+      grupa = "NIEPRZYPISANE";
+      przypisanie = "brak_w_bazie";
+    } else if (isCoy004Trasa(trasaZBazy)) {
+      trasa = trasaZBazy;
+      grupa = COY004;
+      przypisanie = "baza";
     } else {
-      const matched = routesByChuteId.get(chuteKey);
-      if (!matched) {
-        unmapped.add(chuteId);
-        unmappedRowCount += 1;
-        continue;
-      }
-      targets = matched.map((route) => ({ trasa: route.trasa, grupa: route.grupa }));
+      trasa = trasaZBazy;
+      const znana = grupaByTrasa.get(trasaZBazy);
+      grupa = znana ?? "NIEPRZYPISANE";
+      przypisanie = znana ? "baza" : "nieznana_trasa";
     }
 
-    for (const { trasa, grupa } of targets) {
-      shipments.push({
-        shipmentId: panorama.shipmentId,
-        remarks: panorama.remarks,
-        hwx: panorama.hwx,
-        lastPhyCp: panorama.lastPhyCp,
-        lastPhyCpDt: parseFlexibleDate(panorama.lastPhyCpDt)?.toISOString() ?? null,
-        weightDimension: panorama.weightDimension,
-        shpCalcWgt: parseNumber(panorama.shpCalcWgt),
-        shpTotPcs: parseNumber(panorama.shpTotPcs),
-        consigneeName: panorama.consigneeName,
-        chuteId,
-        receiverName: sherloc?.receiverName ?? "",
-        rcvrAddr1: sherloc?.rcvrAddr1 ?? "",
-        rcvrPostcode: sherloc?.rcvrPostcode ?? "",
-        rcvrCity: sherloc?.rcvrCity ?? "",
-        trasa,
-        grupa,
-        sortujacy: sorterNameByTrasa.get(trasa) || sorterFromTrasa(trasa),
-        wystapilo: occurrenceCounts.get(panorama.shipmentId) ?? 1,
-      });
-    }
+    const sortujacy = trasa ? sorterNameByTrasa.get(trasa) ?? "" : "";
+    if (trasa && !sortujacy) bezSortujacegoRows += 1;
+    przypisanieCounts[przypisanie] += 1;
+
+    shipments.push({
+      shipmentId: panorama.shipmentId,
+      remarks: panorama.remarks,
+      hwx: panorama.hwx,
+      lastPhyCp: panorama.lastPhyCp,
+      lastPhyCpDt: parseFlexibleDate(panorama.lastPhyCpDt)?.toISOString() ?? null,
+      weightDimension: panorama.weightDimension,
+      shpCalcWgt: parseNumber(panorama.shpCalcWgt),
+      shpTotPcs: parseNumber(panorama.shpTotPcs),
+      consigneeName: panorama.consigneeName,
+      chuteId: panorama.chuteId.trim(),
+      receiverName: sherloc?.receiverName ?? "",
+      rcvrAddr1: sherloc?.rcvrAddr1 ?? "",
+      rcvrPostcode: sherloc?.rcvrPostcode ?? "",
+      rcvrCity: sherloc?.rcvrCity ?? "",
+      trasa,
+      grupa,
+      sortujacy,
+      wystapilo: occurrenceCounts.get(panorama.shipmentId) ?? 1,
+      przypisanie,
+    });
   }
 
-  return { shipments, unmappedChuteIds: Array.from(unmapped), unmappedRowCount };
+  return { shipments, przypisanieCounts, bezSortujacegoRows };
 }

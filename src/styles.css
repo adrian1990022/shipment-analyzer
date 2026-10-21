@@ -219,6 +219,13 @@ h2 {
   font-size: 13px;
 }
 
+/* Potwierdzenie zapisu (baza przypisan tras, 2026-10-21). */
+.success {
+  color: var(--success);
+  font-size: 14px;
+  font-weight: 600;
+}
+
 .mono {
   font-family: ui-monospace, Consolas, monospace;
   word-break: break-all;
