@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { fetchSorters } from "../repository/sorterRepository";
 import { fetchAttendanceMonths, saveAttendanceMonth, type AttendanceMonthInfo } from "../repository/attendanceRepository";
 import { parseAttendance, type AttendanceParseResult } from "./parseAttendance";
+import { useBlockUpdatesWhile } from "../../lib/updateGuard";
 
 // Lista obecnosci sortujacych (2026-10-13): admin wkleja kolumne z Excela
 // ("Jan Kowalski_5"), widzi podglad (rozpoznani / nieznani / bledne wpisy)
@@ -49,6 +50,8 @@ export function AttendanceImport() {
   const [monthKey, setMonthKey] = useState(options[0].key);
   const [text, setText] = useState("");
   const [stage, setStage] = useState<Stage>({ kind: "editing", error: null });
+  // Bez automatycznej aktualizacji od "Sprawdź" do zapisu/powrotu.
+  useBlockUpdatesWhile(stage.kind === "checking" || stage.kind === "reviewing" || stage.kind === "saving");
   const [months, setMonths] = useState<AttendanceMonthInfo[]>([]);
 
   const selected = options.find((o) => o.key === monthKey) ?? options[0];

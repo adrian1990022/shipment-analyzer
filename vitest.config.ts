@@ -38,6 +38,7 @@ export default defineConfig({
         "src/modules/routeBase/parseRouteBase.ts",
         "src/lib/registerServiceWorker.ts",
         "src/lib/appVersion.ts",
+        "src/lib/updateGuard.ts",
       ],
       exclude: ["**/*.test.ts", "**/*.tsx"],
       thresholds: {

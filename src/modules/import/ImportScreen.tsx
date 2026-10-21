@@ -5,6 +5,7 @@ import { formatTimeHHmm } from "../normalizer/normalize";
 import { RECENT_SCAN_WINDOW_MINUTES, buildScanCutoff } from "../dateFilter/filterByScanCutoff";
 import { reportError } from "../monitoring/reportError";
 import { AttendanceImport } from "../attendance/AttendanceImport";
+import { useBlockUpdatesWhile } from "../../lib/updateGuard";
 import { RouteBaseCard, formatDateTime } from "../routeBase/RouteBaseCard";
 import type { ImportResult } from "../../types/shipment";
 
@@ -40,6 +41,8 @@ export function ImportScreen({ onSaved }: { onSaved: () => void }) {
   // Godzina, od ktorej liczone jest okno 15 minut wstecz (przesylki ze
   // skanem w tym oknie sa pomijane). Domyslnie biezaca godzina.
   const [cutoffTime, setCutoffTime] = useState(currentTimeHHmm);
+  // Bez automatycznej aktualizacji od "Analizuj" do zapisu/odrzucenia.
+  useBlockUpdatesWhile(stage.kind === "analyzing" || stage.kind === "reviewing" || stage.kind === "saving");
 
   async function handleAnalyze() {
     const cutoff = buildScanCutoff(cutoffTime);

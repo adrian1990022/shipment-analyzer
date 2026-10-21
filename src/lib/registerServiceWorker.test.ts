@@ -6,6 +6,7 @@ const { reportError } = vi.hoisted(() => ({ reportError: vi.fn() }));
 vi.mock("../modules/monitoring/reportError", () => ({ reportError }));
 
 const { registerServiceWorker, UPDATE_CHECK_INTERVAL_MS } = await import("./registerServiceWorker");
+const { blockUpdates } = await import("./updateGuard");
 
 type Options = Parameters<typeof import("virtual:pwa-register").registerSW>[0] & {
   onRegisteredSW: (swUrl: string, r: ServiceWorkerRegistration | undefined) => void;
@@ -129,6 +130,21 @@ describe("registerServiceWorker", () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(update).not.toHaveBeenCalled();
+  });
+
+  it("import w toku -> sprawdzenie odlozone i wykonane zaraz po jego koncu", async () => {
+    setupBrowser();
+    const update = vi.fn(async () => {});
+    registerServiceWorker();
+    registered().onRegisteredSW("/sw.js", { installing: null, update } as unknown as ServiceWorkerRegistration);
+
+    const release = blockUpdates();
+    await vi.advanceTimersByTimeAsync(UPDATE_CHECK_INTERVAL_MS);
+    expect(update).not.toHaveBeenCalled();
+
+    release();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(update).toHaveBeenCalledTimes(1);
   });
 
   it("brak rejestracji -> brak sprawdzania", () => {

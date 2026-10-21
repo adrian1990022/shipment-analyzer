@@ -26,6 +26,11 @@ stanu aplikacji. Każdy wpis tutaj odpowiada jednemu commitowi w gita
   przeładowanie po 5 min i po powrocie do aplikacji, odświeżenie, offline.
 - Po automatycznym przeładowaniu aplikacja startuje od Dashboardu (stos
   ekranów nie jest odtwarzany).
+- **Blokada na czas importu** (`src/lib/updateGuard.ts`, decyzja Adriana):
+  od „Analizuj”/wybrania pliku do zapisu albo odrzucenia (raporty, baza
+  przypisań tras, lista obecności) aplikacja nie sprawdza nowego wydania —
+  przeładowanie nie skasuje importu w toku; odłożone sprawdzenie wykonuje
+  się zaraz po jego końcu.
 
 ## 2026-10-21 — Baza przypisań tras zamiast Chute ID
 

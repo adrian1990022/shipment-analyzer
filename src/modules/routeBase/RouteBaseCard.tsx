@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { fetchRouteBaseStatus, replaceRouteBase } from "../repository/routeBaseRepository";
 import { formatTimeHHmm, toLocalDateKey } from "../normalizer/normalize";
 import { reportError } from "../monitoring/reportError";
+import { useBlockUpdatesWhile } from "../../lib/updateGuard";
 import { RouteBaseError, parseRouteBaseFile, type RouteBaseValidation } from "./parseRouteBase";
 import type { RouteBaseStatus } from "../../types/shipment";
 
@@ -37,6 +38,8 @@ export function RouteBaseCard({ onSaved }: { onSaved?: () => void }) {
   });
   const [stage, setStage] = useState<Stage>({ kind: "idle", error: null });
   const [inputKey, setInputKey] = useState(0);
+  // Bez automatycznej aktualizacji od wybrania pliku do zapisu/anulowania.
+  useBlockUpdatesWhile(stage.kind !== "idle");
 
   async function loadStatus() {
     setStatus((s) => ({ ...s, loading: true, error: null }));

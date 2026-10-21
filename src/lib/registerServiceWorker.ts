@@ -1,5 +1,6 @@
 import { registerSW } from "virtual:pwa-register";
 import { reportError } from "../modules/monitoring/reportError";
+import { deferUntilUnblocked, isUpdateBlocked } from "./updateGuard";
 
 // Co ile sprawdzac, czy jest nowe wydanie, gdy aplikacja jest dlugo otwarta.
 export const UPDATE_CHECK_INTERVAL_MS = 5 * 60 * 1000;
@@ -12,6 +13,7 @@ export const UPDATE_CHECK_INTERVAL_MS = 5 * 60 * 1000;
 //   - co UPDATE_CHECK_INTERVAL_MS (aplikacja otwarta caly dzien),
 //   - po powrocie do karty/aplikacji (telefon wybudzony, PWA z tla).
 // Bez sieci nie sprawdzamy (unikamy bledow; offline dziala jak dotad).
+// W trakcie importu sprawdzenie jest odkladane do jego konca (updateGuard).
 export function registerServiceWorker(): void {
   if (!("serviceWorker" in navigator)) return;
 
@@ -21,6 +23,10 @@ export function registerServiceWorker(): void {
       if (!registration) return;
 
       const checkForUpdate = async () => {
+        if (isUpdateBlocked()) {
+          deferUntilUnblocked(checkForUpdate);
+          return;
+        }
         if (registration.installing || !navigator.onLine) return;
         try {
           // Najpierw sam plik SW bez pamieci podrecznej -- przy braku sieci
