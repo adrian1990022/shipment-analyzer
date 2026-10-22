@@ -98,7 +98,7 @@ export function RoutesAdmin() {
         Od 2026-10-21 trasa przesyłki pochodzi z bazy przypisań tras (ekran Import), nie z Chute ID.
         Ta tabela ustala już tylko grupę kafelka (P1/P2/P3) dla kodu trasy — trasa z bazy, której tu
         nie ma, trafia do kafelka „Nieprzypisane”. Trasy z „O” na 3. miejscu (WAOA…) zawsze trafiają
-        do COY004 i nie wymagają wpisu. Przypisanie sortującego do trasy zarządzasz w zakładce
+        do COY004, a kody magazynowe WAGM i WAW1 do kafelka „Magazyn” — nie wymagają wpisu. Przypisanie sortującego do trasy zarządzasz w zakładce
         "Sortujący".
       </p>
       <p className="hint">

@@ -3,7 +3,16 @@ import { fetchRouteBaseStatus, replaceRouteBase } from "../repository/routeBaseR
 import { formatTimeHHmm, toLocalDateKey } from "../normalizer/normalize";
 import { reportError } from "../monitoring/reportError";
 import { useBlockUpdatesWhile } from "../../lib/updateGuard";
-import { RouteBaseError, parseRouteBaseFile, type RouteBaseValidation } from "./parseRouteBase";
+import {
+  RouteBaseError,
+  canSaveRouteBase,
+  parseRouteBaseFile,
+  resolveAssignments,
+  unresolvedConflicts,
+  type ConflictChoices,
+  type RouteBaseConflict,
+  type RouteBaseValidation,
+} from "./parseRouteBase";
 import type { RouteBaseStatus } from "../../types/shipment";
 
 type Stage =
@@ -38,6 +47,8 @@ export function RouteBaseCard({ onSaved }: { onSaved?: () => void }) {
   });
   const [stage, setStage] = useState<Stage>({ kind: "idle", error: null });
   const [inputKey, setInputKey] = useState(0);
+  // Wybor trasy dla numerow z roznymi trasami w pliku (2026-10-22).
+  const [choices, setChoices] = useState<ConflictChoices>({});
   // Bez automatycznej aktualizacji od wybrania pliku do zapisu/anulowania.
   useBlockUpdatesWhile(stage.kind !== "idle");
 
@@ -56,6 +67,7 @@ export function RouteBaseCard({ onSaved }: { onSaved?: () => void }) {
 
   async function handleFile(file: File | null) {
     if (!file) return;
+    setChoices({});
     setStage({ kind: "parsing" });
     try {
       const validation = await parseRouteBaseFile(file);
@@ -71,7 +83,7 @@ export function RouteBaseCard({ onSaved }: { onSaved?: () => void }) {
   async function handleSave(filename: string, validation: RouteBaseValidation) {
     setStage({ kind: "saving", filename, validation });
     try {
-      const count = await replaceRouteBase(filename, validation.assignments);
+      const count = await replaceRouteBase(filename, resolveAssignments(validation, choices));
       setStage({ kind: "idle", error: null, savedCount: count });
       setInputKey((k) => k + 1);
       await loadStatus();
@@ -88,6 +100,7 @@ export function RouteBaseCard({ onSaved }: { onSaved?: () => void }) {
   }
 
   function handleCancel() {
+    setChoices({});
     setStage({ kind: "idle", error: null });
     setInputKey((k) => k + 1);
   }
@@ -147,6 +160,8 @@ export function RouteBaseCard({ onSaved }: { onSaved?: () => void }) {
         <RouteBaseReview
           filename={stage.filename}
           validation={stage.validation}
+          choices={choices}
+          onChoose={(awb, route) => setChoices((c) => ({ ...c, [awb]: route }))}
           saving={stage.kind === "saving"}
           error={stage.kind === "reviewing" ? stage.error : undefined}
           onSave={() => handleSave(stage.filename, stage.validation)}
@@ -170,9 +185,43 @@ function IssueList({ items }: { items: { wiersz: number; opis: string }[] }) {
   );
 }
 
+// Wybor trasy dla jednego konfliktu: trasy z pliku (z numerami wierszy)
+// albo "Pomin" -- przesylka zostaje poza baza (Nieprzypisane).
+function ConflictChoice({
+  conflict,
+  choice,
+  disabled,
+  onChoose,
+}: {
+  conflict: RouteBaseConflict;
+  choice: string | null | undefined;
+  disabled: boolean;
+  onChoose: (route: string | null) => void;
+}) {
+  const name = `konflikt-${conflict.awb}`;
+  return (
+    <fieldset className={`conflict-choice${choice === undefined ? " conflict-choice--open" : ""}`}>
+      <legend className="mono">{conflict.awb}</legend>
+      {conflict.options.map((o) => (
+        <label key={o.route}>
+          <input type="radio" name={name} checked={choice === o.route} disabled={disabled} onChange={() => onChoose(o.route)} />
+          <strong>{o.route}</strong>{" "}
+          <span className="hint">(wiersz {o.wiersze.join(", ")})</span>
+        </label>
+      ))}
+      <label>
+        <input type="radio" name={name} checked={choice === null} disabled={disabled} onChange={() => onChoose(null)} />
+        Pomiń — przesyłka będzie nieprzypisana
+      </label>
+    </fieldset>
+  );
+}
+
 function RouteBaseReview({
   filename,
   validation,
+  choices,
+  onChoose,
   saving,
   error,
   onSave,
@@ -180,22 +229,31 @@ function RouteBaseReview({
 }: {
   filename: string;
   validation: RouteBaseValidation;
+  choices: ConflictChoices;
+  onChoose: (awb: string, route: string | null) => void;
   saving: boolean;
   error?: string;
   onSave: () => void;
   onCancel: () => void;
 }) {
-  const { assignments, dataRows, duplicateRows, emptyRows, invalidRows, conflicts, canSave } = validation;
+  const { dataRows, duplicateRows, emptyRows, invalidRows, headerRows, conflicts } = validation;
+  const toSave = resolveAssignments(validation, choices);
+  const open = unresolvedConflicts(validation, choices);
+  const canSave = canSaveRouteBase(validation, choices);
   return (
     <div>
       <h3>Sprawdzenie pliku {filename}</h3>
       <ul className="summary-list">
         <li>Wiersze z danymi: {dataRows}</li>
-        <li>Przypisania do zapisania: {assignments.length}</li>
+        <li>Przypisania do zapisania: {toSave.length}</li>
         <li>Powtórzone identyczne pary (scalone): {duplicateRows}</li>
+        {headerRows > 0 && <li>Powtórzony wiersz nagłówka (pominięty): {headerRows}</li>}
         <li>Pominięte — pusty numer lub trasa: {emptyRows.length}</li>
         <li>Błędne wiersze (blokują zapis): {invalidRows.length}</li>
-        <li>Konflikty — numer z różnymi trasami (blokują zapis): {conflicts.length}</li>
+        <li>
+          Konflikty — numer z różnymi trasami: {conflicts.length}
+          {conflicts.length > 0 && ` (bez wyboru: ${open})`}
+        </li>
       </ul>
 
       {emptyRows.length > 0 && (
@@ -211,19 +269,27 @@ function RouteBaseReview({
         </div>
       )}
       {conflicts.length > 0 && (
-        <div className="error">
-          <p>Te numery przesyłek mają w pliku różne trasy — popraw plik i wgraj ponownie:</p>
-          <ul className="summary-list">
-            {conflicts.slice(0, LIST_LIMIT).map((c) => (
-              <li key={c.awb} className="mono">
-                {c.awb}: {c.routes.join(", ")}
-              </li>
+        <div className="warning">
+          <p>
+            Te przesyłki mają w pliku różne trasy — wybierz, do której trasy przypisać każdą z nich (albo „Pomiń”).
+            Zapis będzie możliwy po wyborze dla wszystkich.
+          </p>
+          <div className="conflict-list">
+            {conflicts.map((c) => (
+              <ConflictChoice
+                key={c.awb}
+                conflict={c}
+                choice={choices[c.awb]}
+                disabled={saving}
+                onChoose={(route) => onChoose(c.awb, route)}
+              />
             ))}
-            {conflicts.length > LIST_LIMIT && <li>… i {conflicts.length - LIST_LIMIT} więcej</li>}
-          </ul>
+          </div>
         </div>
       )}
-      {assignments.length === 0 && <p className="error">Plik nie zawiera żadnego poprawnego przypisania.</p>}
+      {toSave.length === 0 && open === 0 && (
+        <p className="error">Plik nie zawiera żadnego poprawnego przypisania.</p>
+      )}
 
       {error && <p className="error">{error}</p>}
 

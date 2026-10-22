@@ -5,6 +5,7 @@ const EMPTY_GROUP_COUNTS: Record<Grupa, number> = {
   P2: 0,
   P3: 0,
   COY004: 0,
+  MAGAZYN: 0,
   NIEPRZYPISANE: 0,
 };
 

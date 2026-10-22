@@ -29,11 +29,13 @@ describe("groupLayout / etykiety (2026-10-21)", () => {
     expect(groupLayout("P2")).toBe("sortujacy");
     expect(groupLayout("P3")).toBe("sortujacy");
     expect(groupLayout("COY004")).toBe("trasa");
+    expect(groupLayout("MAGAZYN")).toBe("trasa");
     expect(groupLayout("NIEPRZYPISANE")).toBe("lista");
   });
 
   it("etykiety kafelka i braku sortujacego", () => {
     expect(grupaLabel("NIEPRZYPISANE")).toBe("Nieprzypisane");
+    expect(grupaLabel("MAGAZYN")).toBe("Magazyn");
     expect(grupaLabel("P1")).toBe("P1");
     expect(sorterLabel("")).toBe("Brak sortującego");
     expect(sorterLabel("Jan Kowalski")).toBe("Jan Kowalski");
@@ -50,7 +52,7 @@ describe("countByGrupa / shipmentsInGrupa", () => {
       shipment({ grupa: "NIEPRZYPISANE", trasa: "", przypisanie: "brak_w_bazie" }),
     ];
 
-    expect(countByGrupa(shipments)).toEqual({ P1: 1, P2: 2, P3: 0, COY004: 1, NIEPRZYPISANE: 1 });
+    expect(countByGrupa(shipments)).toEqual({ P1: 1, P2: 2, P3: 0, COY004: 1, MAGAZYN: 0, NIEPRZYPISANE: 1 });
     expect(shipmentsInGrupa(shipments, "NIEPRZYPISANE")).toHaveLength(1);
     expect(shipmentsInGrupa(shipments, "P2")).toHaveLength(2);
     expect(shipmentsInGrupa(shipments, "P3")).toHaveLength(0);

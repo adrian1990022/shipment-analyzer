@@ -86,7 +86,7 @@ describe("shipmentsRepository", () => {
       recentSkippedRows: 0,
       noDateRows: 0,
       cutoffAt: null,
-      groupCounts: { P1: 1, P2: 0, P3: 0, COY004: 0, NIEPRZYPISANE: 0 },
+      groupCounts: { P1: 1, P2: 0, P3: 0, COY004: 0, MAGAZYN: 0, NIEPRZYPISANE: 0 },
       przypisanieCounts: { baza: 1, brak_w_bazie: 0, nieznana_trasa: 0 },
       bezSortujacegoRows: 0,
       routeBaseUploadedAt: null,

@@ -128,7 +128,7 @@ export function SorterTable({
           ? `sortujący ${sorterLabel(sortujacy)}`
           : grupa === "NIEPRZYPISANE"
             ? "Dashboard"
-            : `Grupa ${grupa}`}
+            : `Grupa ${grupaLabel(grupa)}`}
       </button>
       <h1>
         {[grupaLabel(grupa), sortujacy !== null ? sorterLabel(sortujacy) : null, trasa ?? null]

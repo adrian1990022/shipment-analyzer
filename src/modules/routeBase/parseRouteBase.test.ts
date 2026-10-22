@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
 import * as XLSX from "xlsx";
 import { buildXlsxFile } from "../../test/xlsxFixture";
-import { RouteBaseError, parseRouteBaseFile, validateRouteBaseRows } from "./parseRouteBase";
+import {
+  RouteBaseError,
+  canSaveRouteBase,
+  parseRouteBaseFile,
+  resolveAssignments,
+  unresolvedConflicts,
+  validateRouteBaseRows,
+} from "./parseRouteBase";
 
 function csvFile(text: string, filename = "baza.csv"): File {
   return new File([text], filename, { type: "text/csv" });
@@ -40,7 +47,7 @@ describe("parseRouteBaseFile", () => {
       { awb: "112233445", route: "WAFB" },
       { awb: "556677889", route: "WAEX" },
     ]);
-    expect(v.canSave).toBe(true);
+    expect(canSaveRouteBase(v, {})).toBe(true);
   });
 
   it("2. inna kolejnosc kolumn + dodatkowa kolumna", async () => {
@@ -92,7 +99,7 @@ describe("parseRouteBaseFile", () => {
 
     expect(v.assignments).toEqual([{ awb: "1", route: "WAEX" }]);
     expect(v.emptyRows.map((r) => r.wiersz)).toEqual([3, 4]);
-    expect(v.canSave).toBe(true);
+    expect(canSaveRouteBase(v, {})).toBe(true);
   });
 
   it("7. zera wiodace zachowane -- komorki tekstowe xlsx", async () => {
@@ -124,7 +131,7 @@ describe("parseRouteBaseFile", () => {
     const v = await parseRouteBaseFile(csvFile("Route,AWB/BkgRef\nWAEX,1.23457E+11\n"));
 
     expect(v.invalidRows).toHaveLength(1);
-    expect(v.canSave).toBe(false);
+    expect(canSaveRouteBase(v, {})).toBe(false);
   });
 
   it("8. identyczne pary scalane w jeden wpis", async () => {
@@ -141,24 +148,101 @@ describe("parseRouteBaseFile", () => {
 
     expect(v.assignments).toEqual([{ awb: "1", route: "WAEX" }]);
     expect(v.duplicateRows).toBe(2);
-    expect(v.canSave).toBe(true);
+    expect(canSaveRouteBase(v, {})).toBe(true);
   });
 
-  it("9. ten sam numer z roznymi trasami -> konflikt blokuje zapis", async () => {
+  it("9. ten sam numer z roznymi trasami -> konflikt do wyboru, bez wyboru zapis zablokowany", async () => {
     const file = buildXlsxFile(
       ["Route", "AWB/BkgRef"],
       [
-        ["WAEX", "1"],
         ["WALC", "1"],
+        ["WAEX", "1"],
         ["WAFB", "2"],
+        ["WALC", "1"],
       ]
     );
 
     const v = await parseRouteBaseFile(file);
 
-    expect(v.conflicts).toEqual([{ awb: "1", routes: ["WAEX", "WALC"] }]);
+    expect(v.conflicts).toEqual([
+      {
+        awb: "1",
+        options: [
+          { route: "WAEX", wiersze: [3] },
+          { route: "WALC", wiersze: [2, 5] },
+        ],
+      },
+    ]);
     expect(v.assignments).toEqual([{ awb: "2", route: "WAFB" }]);
-    expect(v.canSave).toBe(false);
+    expect(unresolvedConflicts(v, {})).toBe(1);
+    expect(canSaveRouteBase(v, {})).toBe(false);
+  });
+
+  it("konflikt: wybrana trasa trafia do zapisu", async () => {
+    const v = validateRouteBaseRows([
+      { route: "WAEX", "awb/bkgref": "1" },
+      { route: "WALC", "awb/bkgref": "1" },
+      { route: "WAFB", "awb/bkgref": "2" },
+    ]);
+
+    expect(canSaveRouteBase(v, { "1": "WALC" })).toBe(true);
+    expect(resolveAssignments(v, { "1": "WALC" })).toEqual([
+      { awb: "2", route: "WAFB" },
+      { awb: "1", route: "WALC" },
+    ]);
+  });
+
+  it("konflikt: Pomin -> przesylka poza baza, zapis mozliwy", () => {
+    const v = validateRouteBaseRows([
+      { route: "WAEX", "awb/bkgref": "1" },
+      { route: "WALC", "awb/bkgref": "1" },
+      { route: "WAFB", "awb/bkgref": "2" },
+    ]);
+
+    expect(unresolvedConflicts(v, { "1": null })).toBe(0);
+    expect(canSaveRouteBase(v, { "1": null })).toBe(true);
+    expect(resolveAssignments(v, { "1": null })).toEqual([{ awb: "2", route: "WAFB" }]);
+  });
+
+  it("konflikt: wybor spoza tras z pliku nie liczy sie jako rozstrzygniecie", () => {
+    const v = validateRouteBaseRows([
+      { route: "WAEX", "awb/bkgref": "1" },
+      { route: "WALC", "awb/bkgref": "1" },
+    ]);
+
+    expect(unresolvedConflicts(v, { "1": "WAZZ" })).toBe(1);
+    expect(resolveAssignments(v, { "1": "WAZZ" })).toEqual([]);
+    expect(canSaveRouteBase(v, { "1": "WAZZ" })).toBe(false);
+  });
+
+  it("same konflikty, wszystkie pominiete -> nic do zapisania", () => {
+    const v = validateRouteBaseRows([
+      { route: "WAEX", "awb/bkgref": "1" },
+      { route: "WALC", "awb/bkgref": "1" },
+    ]);
+
+    expect(canSaveRouteBase(v, { "1": null })).toBe(false);
+  });
+
+  it("powtorzony wiersz naglowka w srodku pliku -> pominiety (realny plik DISCO)", async () => {
+    const file = buildXlsxFile(
+      ["Route", "AWB/BkgRef"],
+      [
+        ["WAEX", "1"],
+        ["ROUTE", "AWB/BKGREF"],
+        ["Route", "AWB / BkgRef"],
+        ["WALC", "2"],
+      ]
+    );
+
+    const v = await parseRouteBaseFile(file);
+
+    expect(v.headerRows).toBe(2);
+    expect(v.dataRows).toBe(2);
+    expect(v.assignments).toEqual([
+      { awb: "1", route: "WAEX" },
+      { awb: "2", route: "WALC" },
+    ]);
   });
 
   it("10. duzy zbior (6000 rekordow)", async () => {
@@ -168,7 +252,7 @@ describe("parseRouteBaseFile", () => {
     const v = await parseRouteBaseFile(file);
 
     expect(v.assignments).toHaveLength(6000);
-    expect(v.canSave).toBe(true);
+    expect(canSaveRouteBase(v, {})).toBe(true);
   });
 });
 
@@ -190,12 +274,12 @@ describe("validateRouteBaseRows", () => {
     ]);
 
     expect(v.invalidRows.map((r) => r.wiersz)).toEqual([2, 3]);
-    expect(v.canSave).toBe(false);
+    expect(canSaveRouteBase(v, {})).toBe(false);
   });
 
   it("brak jakiegokolwiek poprawnego przypisania -> nie mozna zapisac", () => {
     const v = validateRouteBaseRows([{ route: "", "awb/bkgref": "1" }]);
 
-    expect(v.canSave).toBe(false);
+    expect(canSaveRouteBase(v, {})).toBe(false);
   });
 });

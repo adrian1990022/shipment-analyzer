@@ -119,7 +119,7 @@ Walidacja (pliki wybrane, format czytelny)
   → Reguła 15 minut (pomija przesyłki z ostatnim skanem w ciągu 15 min przed godziną wpisaną przy imporcie; starsze — także z poprzednich dni — zostają)
   → [wymagana baza przypisań tras wgrana DZISIAJ — inaczej import zablokowany]
   → Mapowanie tras (od 2026-10-21): Shipment ID → baza przypisań tras (Route | AWB/BkgRef) → Trasa;
-      brak numeru w bazie → kafelek „Nieprzypisane”; trasa z „O” na 3. miejscu → COY004;
+      brak numeru w bazie → kafelek „Nieprzypisane”; WAGM/WAW1 → „Magazyn”; trasa z „O” na 3. miejscu → COY004;
       trasa znana w routes → grupa P1/P2/P3; trasa spoza routes → „Nieprzypisane” (nieznana trasa).
       Chute ID NIE wyznacza już trasy.
   → Przypisanie sortującego (tylko z sorter_routes; brak → „Brak sortującego”, bez fallbacku z 3. litery)
@@ -139,8 +139,9 @@ sortujących + baza przypisań tras) dostaje przez wstrzykniętą funkcję — w
 **Baza przypisań tras** (migracja 0016): plik Excel/CSV z kolumnami „Route”
 i „AWB/BkgRef”, wgrywany na ekranie Import (karta „Baza przypisań tras”) albo
 w kurier_appp. Czytanie i walidacja: `src/modules/routeBase/parseRouteBase.ts`
-(puste wartości pomijane, identyczne pary scalane, numer z różnymi trasami
-albo w zapisie naukowym blokuje zapis). Zapis: funkcja bazy
+(puste wartości i powtórzony nagłówek pomijane, identyczne pary scalane; numer
+z różnymi trasami — użytkownik wybiera trasę albo „Pomiń”; numer w zapisie
+naukowym blokuje zapis). Zapis: funkcja bazy
 `replace_route_assignments` — podmienia CAŁĄ bazę w jednej transakcji i
 sprawdza dane drugi raz; przy błędzie poprzednia baza zostaje. Funkcja
 `import_shipments` odrzuca import bez dzisiejszej bazy (druga linia obrony).

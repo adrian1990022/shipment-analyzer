@@ -1,10 +1,11 @@
 // NIEPRZYPISANE (2026-10-21): przesylki bez trasy z bazy przypisan tras
-// albo z trasa spoza tabeli routes -- patrz mapRoutes.ts.
-export type Grupa = "P1" | "P2" | "P3" | "COY004" | "NIEPRZYPISANE";
+// albo z trasa spoza tabeli routes. MAGAZYN (2026-10-22): kody magazynowe
+// z bazy (WAGM, WAW1) -- patrz mapRoutes.ts.
+export type Grupa = "P1" | "P2" | "P3" | "COY004" | "MAGAZYN" | "NIEPRZYPISANE";
 
 // Skad trasa przesylki (od 2026-10-21, kolumna shipments.przypisanie):
 //   baza           -- trasa z bazy przypisan tras, znana w routes (albo
-//                     COY004: 3. litera trasy "O"),
+//                     COY004: 3. litera trasy "O", albo MAGAZYN),
 //   brak_w_bazie   -- numeru nie ma w bazie -> trasa pusta, NIEPRZYPISANE,
 //   nieznana_trasa -- trasa z bazy, ale spoza routes -> NIEPRZYPISANE.
 // null = przesylka z importu sprzed bazy (trasa z Chute ID).

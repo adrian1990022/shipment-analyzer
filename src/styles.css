@@ -742,3 +742,29 @@ tbody tr.row-dubel td:first-child {
   font-size: 11px;
   padding: 16px 16px 24px;
 }
+
+/* Wybor trasy przy konflikcie w bazie przypisan tras (2026-10-22). */
+.conflict-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.conflict-choice {
+  border: 1px solid var(--warning-border);
+  border-radius: 8px;
+  padding: 6px 10px 8px;
+  margin: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.conflict-choice--open {
+  border-width: 2px;
+}
+
+.conflict-choice label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}

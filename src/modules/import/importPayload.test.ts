@@ -59,7 +59,7 @@ describe("buildImportPayload", () => {
           recentSkippedRows: 1,
           noDateRows: 1,
           cutoffAt: null,
-          groupCounts: { P1: 2, P2: 0, P3: 0, COY004: 0, NIEPRZYPISANE: 0 },
+          groupCounts: { P1: 2, P2: 0, P3: 0, COY004: 0, MAGAZYN: 0, NIEPRZYPISANE: 0 },
           przypisanieCounts: { baza: 2, brak_w_bazie: 0, nieznana_trasa: 0 },
           bezSortujacegoRows: 0,
           routeBaseUploadedAt: null,
@@ -82,7 +82,7 @@ describe("buildImportPayload", () => {
       unmatched_rows: 1,
       unmapped_rows: 1,
       today_rows: 2,
-      group_counts: { P1: 2, P2: 0, P3: 0, COY004: 0, NIEPRZYPISANE: 0 },
+      group_counts: { P1: 2, P2: 0, P3: 0, COY004: 0, MAGAZYN: 0, NIEPRZYPISANE: 0 },
     });
     expect(payload.p_shipments.map((r) => r.shipment_id)).toEqual(["1", "2"]);
     expect(payload.p_shipments.map((r) => r.przypisanie)).toEqual(["baza", "brak_w_bazie"]);

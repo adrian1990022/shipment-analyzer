@@ -39,7 +39,7 @@ describe("summarize", () => {
       sherlocFilename: "s.xlsx",
     });
 
-    expect(result.groupCounts).toEqual({ P1: 2, P2: 1, P3: 1, COY004: 0, NIEPRZYPISANE: 0 });
+    expect(result.groupCounts).toEqual({ P1: 2, P2: 1, P3: 1, COY004: 0, MAGAZYN: 0, NIEPRZYPISANE: 0 });
   });
 
   it("COY004 liczy sie osobno od P1/P2/P3", () => {
@@ -68,7 +68,7 @@ describe("summarize", () => {
       sherlocFilename: "s.xlsx",
     });
 
-    expect(result.groupCounts).toEqual({ P1: 0, P2: 0, P3: 0, COY004: 0, NIEPRZYPISANE: 0 });
+    expect(result.groupCounts).toEqual({ P1: 0, P2: 0, P3: 0, COY004: 0, MAGAZYN: 0, NIEPRZYPISANE: 0 });
     expect(result.resultRows).toBe(0);
   });
 

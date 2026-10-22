@@ -1,9 +1,9 @@
 import type { Grupa, Shipment } from "../../types/shipment";
-import { shipmentsInGrupa, sorterLabel, sortersInGrupa, trasyInSorter } from "./grouping";
+import { groupLayout, grupaLabel, shipmentsInGrupa, sorterLabel, sortersInGrupa, trasyInSorter } from "./grouping";
 
-// Kafelki wewnatrz grupy: P1/P2/P3 -- sortujacy; COY004 -- trasy (2026-10-21,
-// trasy "O" nie maja sortujacych). NIEPRZYPISANE tu nie trafia (od razu
-// lista, patrz groupLayout).
+// Kafelki wewnatrz grupy: P1/P2/P3 -- sortujacy; COY004 i MAGAZYN -- trasy
+// (2026-10-21/22, te trasy nie maja sortujacych). NIEPRZYPISANE tu nie
+// trafia (od razu lista, patrz groupLayout).
 export function GroupView({
   shipments,
   grupa,
@@ -21,14 +21,14 @@ export function GroupView({
 }) {
   const inGroup = shipmentsInGrupa(shipments, grupa);
 
-  if (grupa === "COY004") {
+  if (groupLayout(grupa) === "trasa") {
     const trasy = trasyInSorter(inGroup, handledMap);
     return (
       <div className="screen">
         <button className="back" onClick={onBack}>
           ← Dashboard
         </button>
-        <h1>Grupa {grupa}</h1>
+        <h1>Grupa {grupaLabel(grupa)}</h1>
         {trasy.length === 0 && <p className="hint">Brak przesylek w tej grupie.</p>}
         <div className="tiles">
           {trasy.map(({ trasa, count, allHandled }) => (

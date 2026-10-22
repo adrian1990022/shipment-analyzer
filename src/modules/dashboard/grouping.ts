@@ -1,10 +1,12 @@
 import type { Grupa, Shipment } from "../../types/shipment";
 import { isShipmentHandled, naturalCompare } from "../normalizer/normalize";
 
-export const GRUPY: Grupa[] = ["P1", "P2", "P3", "COY004", "NIEPRZYPISANE"];
+export const GRUPY: Grupa[] = ["P1", "P2", "P3", "COY004", "MAGAZYN", "NIEPRZYPISANE"];
+
+const GRUPA_LABELS: Partial<Record<Grupa, string>> = { MAGAZYN: "Magazyn", NIEPRZYPISANE: "Nieprzypisane" };
 
 export function grupaLabel(grupa: Grupa): string {
-  return grupa === "NIEPRZYPISANE" ? "Nieprzypisane" : grupa;
+  return GRUPA_LABELS[grupa] ?? grupa;
 }
 
 // sortujacy "" = trasa bez przypisanego sortujacego (od 2026-10-21 bez
@@ -15,13 +17,13 @@ export function sorterLabel(sortujacy: string): string {
 
 // Uklad kafelka grupy (2026-10-21):
 //   sortujacy -- P1/P2/P3: kafelki sortujacych,
-//   trasa     -- COY004: kafelki tras (trasy "O" nie maja sortujacych,
-//                decyzja Adriana), potem tabela,
+//   trasa     -- COY004 i MAGAZYN: kafelki tras (te trasy nie maja
+//                sortujacych, decyzja Adriana), potem tabela,
 //   lista     -- NIEPRZYPISANE: od razu lista przesylek z powodem.
 export type GroupLayout = "sortujacy" | "trasa" | "lista";
 
 export function groupLayout(grupa: Grupa): GroupLayout {
-  if (grupa === "COY004") return "trasa";
+  if (grupa === "COY004" || grupa === "MAGAZYN") return "trasa";
   if (grupa === "NIEPRZYPISANE") return "lista";
   return "sortujacy";
 }
@@ -33,7 +35,7 @@ export function hasTrasaLevel(grupa: Grupa): boolean {
 }
 
 export function countByGrupa(shipments: Shipment[]): Record<Grupa, number> {
-  const counts: Record<Grupa, number> = { P1: 0, P2: 0, P3: 0, COY004: 0, NIEPRZYPISANE: 0 };
+  const counts: Record<Grupa, number> = { P1: 0, P2: 0, P3: 0, COY004: 0, MAGAZYN: 0, NIEPRZYPISANE: 0 };
   for (const s of shipments) counts[s.grupa] += 1;
   return counts;
 }

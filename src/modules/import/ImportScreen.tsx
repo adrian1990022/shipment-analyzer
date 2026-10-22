@@ -21,6 +21,7 @@ const GROUP_LABELS: Record<string, string> = {
   P2: "P2",
   P3: "P3",
   COY004: "COY004",
+  MAGAZYN: "Magazyn",
   NIEPRZYPISANE: "Nieprzypisane",
 };
 

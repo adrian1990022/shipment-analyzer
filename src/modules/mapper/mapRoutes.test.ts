@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { panoramaRow, routeRef, sherlocRow } from "../../test/fixtures";
 import type { JoinedRow } from "../joiner/joinReports";
-import { isCoy004Trasa, mapRoutes } from "./mapRoutes";
+import { isCoy004Trasa, isMagazynTrasa, mapRoutes } from "./mapRoutes";
 
 function joined(panoramaOverrides = {}, sherloc: ReturnType<typeof sherlocRow> | null = null): JoinedRow {
   return { panorama: panoramaRow(panoramaOverrides), sherloc };
@@ -113,6 +113,32 @@ describe("mapRoutes -- baza przypisan tras (2026-10-21)", () => {
       ["WAOA", "COY004", "baza"],
       ["WAOB", "COY004", "baza"],
     ]);
+  });
+
+  it("WAGM / WAW1 -> MAGAZYN (2026-10-22), takze gdyby byly w routes", () => {
+    const { shipments, przypisanieCounts } = mapRoutes(
+      [joined({ shipmentId: "1" }), joined({ shipmentId: "2" })],
+      [...ROUTES, routeRef({ id: 9, chuteId: "X", trasa: "WAGM", grupa: "P2" })],
+      new Map(),
+      new Map(),
+      base([
+        ["1", "WAGM"],
+        ["2", "WAW1"],
+      ])
+    );
+
+    expect(shipments.map((s) => [s.trasa, s.grupa, s.przypisanie])).toEqual([
+      ["WAGM", "MAGAZYN", "baza"],
+      ["WAW1", "MAGAZYN", "baza"],
+    ]);
+    expect(przypisanieCounts.baza).toBe(2);
+  });
+
+  it("isMagazynTrasa: tylko WAGM i WAW1", () => {
+    expect(isMagazynTrasa("WAGM")).toBe(true);
+    expect(isMagazynTrasa("WAW1")).toBe(true);
+    expect(isMagazynTrasa("WAEX")).toBe(false);
+    expect(isMagazynTrasa("WAOA")).toBe(false);
   });
 
   it("isCoy004Trasa: tylko 3. znak = O", () => {

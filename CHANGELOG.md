@@ -5,6 +5,21 @@ stanu aplikacji. Każdy wpis tutaj odpowiada jednemu commitowi w gita
 (`git log` pokaże dokładny diff; `git checkout <hash> -- .` albo
 `git revert <hash>` pozwala się cofnąć do/po danej zmianie).
 
+## 2026-10-22 — Kafelek „Magazyn”, WABA/WAKC, wybór trasy przy konflikcie w bazie
+
+- **Kafelek „Magazyn”**: trasy WAGM i WAW1 z bazy przypisań tras (kody
+  magazynowe, nie trasy kurierów) → grupa `MAGAZYN` (`mapRoutes.ts`, lista
+  na stałe w kodzie jak COY004). W środku kafelki tras, jak COY004.
+- **WABA → P2, WAKC → P3** w Danych referencyjnych (Chute ID = kod trasy).
+  Migracja `0017_magazyn_waba_wakc.sql` (grupa MAGAZYN + te dwie trasy).
+- **Konflikty w bazie przypisań tras do wyboru**: numer z różnymi trasami
+  w pliku nie blokuje już wgrania — w podglądzie dla każdego wybór trasy
+  (z numerami wierszy) albo „Pomiń” (przesyłka poza bazą → Nieprzypisane);
+  zapis po wyborze dla wszystkich. `resolveAssignments` /
+  `unresolvedConflicts` / `canSaveRouteBase` w `parseRouteBase.ts`.
+- Powtórzony wiersz nagłówka w pliku bazy jest pomijany (realny plik DISCO
+  z 22.10 miał go jako rekord `AWB/BKGREF → ROUTE`).
+
 ## 2026-10-21 — Automatyczna aktualizacja PWA + numer wersji
 
 - **Nowe wydanie wczytuje się samo**: rejestracja Service Workera tylko w
