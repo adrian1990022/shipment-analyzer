@@ -119,7 +119,7 @@ Walidacja (pliki wybrane, format czytelny)
   → Reguła 15 minut (pomija przesyłki z ostatnim skanem w ciągu 15 min przed godziną wpisaną przy imporcie; starsze — także z poprzednich dni — zostają)
   → [wymagana baza przypisań tras wgrana DZISIAJ — inaczej import zablokowany]
   → Mapowanie tras (od 2026-10-21): Shipment ID → baza przypisań tras (Route | AWB/BkgRef) → Trasa;
-      brak numeru w bazie → kafelek „Nieprzypisane”; WAGM/WAW1 → „Magazyn”; trasa z „O” na 3. miejscu → COY004;
+      brak numeru w bazie → kafelek „Nieprzypisane”; WAGM → traktowane jak WAON; WAW1 → „Magazyn”; trasa z „O” na 3. miejscu → COY004;
       trasa znana w routes → grupa P1/P2/P3; trasa spoza routes → „Nieprzypisane” (nieznana trasa).
       Chute ID NIE wyznacza już trasy.
   → Przypisanie sortującego (tylko z sorter_routes; brak → „Brak sortującego”, bez fallbacku z 3. litery)

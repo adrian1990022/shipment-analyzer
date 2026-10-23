@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { panoramaRow, routeRef, sherlocRow } from "../../test/fixtures";
 import type { JoinedRow } from "../joiner/joinReports";
-import { isCoy004Trasa, isMagazynTrasa, mapRoutes } from "./mapRoutes";
+import { isCoy004Trasa, isMagazynTrasa, mapRoutes, trasaPoZamianie } from "./mapRoutes";
 
 function joined(panoramaOverrides = {}, sherloc: ReturnType<typeof sherlocRow> | null = null): JoinedRow {
   return { panorama: panoramaRow(panoramaOverrides), sherloc };
@@ -115,27 +115,39 @@ describe("mapRoutes -- baza przypisan tras (2026-10-21)", () => {
     ]);
   });
 
-  it("WAGM / WAW1 -> MAGAZYN (2026-10-22), takze gdyby byly w routes", () => {
+  it("WAW1 -> MAGAZYN (2026-10-22), takze gdyby byl w routes", () => {
     const { shipments, przypisanieCounts } = mapRoutes(
-      [joined({ shipmentId: "1" }), joined({ shipmentId: "2" })],
-      [...ROUTES, routeRef({ id: 9, chuteId: "X", trasa: "WAGM", grupa: "P2" })],
+      [joined({ shipmentId: "2" })],
+      [...ROUTES, routeRef({ id: 9, chuteId: "X", trasa: "WAW1", grupa: "P2" })],
       new Map(),
       new Map(),
-      base([
-        ["1", "WAGM"],
-        ["2", "WAW1"],
-      ])
+      base([["2", "WAW1"]])
     );
 
-    expect(shipments.map((s) => [s.trasa, s.grupa, s.przypisanie])).toEqual([
-      ["WAGM", "MAGAZYN", "baza"],
-      ["WAW1", "MAGAZYN", "baza"],
-    ]);
-    expect(przypisanieCounts.baza).toBe(2);
+    expect(shipments.map((s) => [s.trasa, s.grupa, s.przypisanie])).toEqual([["WAW1", "MAGAZYN", "baza"]]);
+    expect(przypisanieCounts.baza).toBe(1);
   });
 
-  it("isMagazynTrasa: tylko WAGM i WAW1", () => {
-    expect(isMagazynTrasa("WAGM")).toBe(true);
+  it("WAGM z bazy -> trasa WAON, kafelek COY004 (zamiennik, 2026-10-23)", () => {
+    const { shipments } = mapRoutes(
+      [joined({ shipmentId: "1" })],
+      ROUTES,
+      new Map(),
+      new Map([["WAON", "Jan Kowalski"]]),
+      base([["1", "WAGM"]])
+    );
+
+    expect(shipments[0]).toMatchObject({ trasa: "WAON", grupa: "COY004", przypisanie: "baza", sortujacy: "Jan Kowalski" });
+  });
+
+  it("trasaPoZamianie: tylko WAGM -> WAON, reszta bez zmian", () => {
+    expect(trasaPoZamianie("WAGM")).toBe("WAON");
+    expect(trasaPoZamianie("WAW1")).toBe("WAW1");
+    expect(trasaPoZamianie("WAEX")).toBe("WAEX");
+  });
+
+  it("isMagazynTrasa: tylko WAW1", () => {
+    expect(isMagazynTrasa("WAGM")).toBe(false);
     expect(isMagazynTrasa("WAW1")).toBe(true);
     expect(isMagazynTrasa("WAEX")).toBe(false);
     expect(isMagazynTrasa("WAOA")).toBe(false);

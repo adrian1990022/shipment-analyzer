@@ -5,6 +5,13 @@ stanu aplikacji. Każdy wpis tutaj odpowiada jednemu commitowi w gita
 (`git log` pokaże dokładny diff; `git checkout <hash> -- .` albo
 `git revert <hash>` pozwala się cofnąć do/po danej zmianie).
 
+## 2026-10-23 — WAGM → WAON
+
+- Przesyłki z trasą WAGM w bazie przypisań tras dostają trasę **WAON**
+  (decyzja Adriana) — kafelek COY004 / przycisk WAON, widoczne u kuriera
+  WAON. Zamiennik w `mapRoutes.ts` (`ZAMIENNIKI_TRAS`), baza bez zmian.
+  W „Magazynie” zostaje tylko WAW1.
+
 ## 2026-10-22 — Kafelek „Magazyn”, WABA/WAKC, wybór trasy przy konflikcie w bazie
 
 - **Kafelek „Magazyn”**: trasy WAGM i WAW1 z bazy przypisań tras (kody

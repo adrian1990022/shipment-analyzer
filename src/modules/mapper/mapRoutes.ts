@@ -13,7 +13,16 @@ export function isCoy004Trasa(trasa: string): boolean {
 
 // Kafelek MAGAZYN (decyzja Adriana 2026-10-22): kody magazynowe z bazy
 // przypisan tras -- nie sa trasami kurierow. Nowy kod = dopisac tutaj.
-const MAGAZYN_TRASY = new Set(["WAGM", "WAW1"]);
+const MAGAZYN_TRASY = new Set(["WAW1"]);
+
+// Zamienniki kodow z bazy przypisan tras (decyzja Adriana 2026-10-23):
+// przesylka z trasa z lewej strony dostaje trase z prawej -- dalej obowiazuja
+// zwykle reguly (WAON: "O" na 3. miejscu -> COY004, widoczna u kuriera WAON).
+const ZAMIENNIKI_TRAS: Record<string, string> = { WAGM: "WAON" };
+
+export function trasaPoZamianie(trasa: string): string {
+  return ZAMIENNIKI_TRAS[trasa] ?? trasa;
+}
 
 export function isMagazynTrasa(trasa: string): boolean {
   return MAGAZYN_TRASY.has(trasa);
@@ -34,7 +43,8 @@ export interface MapResult {
 // AWB/BkgRef"), dla wszystkich przesylek z Panoramy:
 //
 //   numer nie w bazie       -> trasa "", NIEPRZYPISANE (brak_w_bazie),
-//   WAGM / WAW1 (magazyn)   -> MAGAZYN (baza),
+//   (najpierw zamiennik kodu: WAGM -> WAON, patrz ZAMIENNIKI_TRAS)
+//   WAW1 (magazyn)          -> MAGAZYN (baza),
 //   trasa z "O" na 3. msc   -> COY004 (baza),
 //   trasa w routes          -> grupa z routes (baza),
 //   trasa spoza routes      -> trasa zostaje, NIEPRZYPISANE (nieznana_trasa),
@@ -67,7 +77,8 @@ export function mapRoutes(
   let bezSortujacegoRows = 0;
 
   for (const { panorama, sherloc } of rows) {
-    const trasaZBazy = routeByAwb.get(normalizeJoinKey(panorama.shipmentId));
+    const zBazy = routeByAwb.get(normalizeJoinKey(panorama.shipmentId));
+    const trasaZBazy = zBazy === undefined ? undefined : trasaPoZamianie(zBazy);
 
     let trasa: string;
     let grupa: Grupa;
